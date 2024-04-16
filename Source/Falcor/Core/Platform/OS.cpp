@@ -191,6 +191,32 @@ const std::vector<std::filesystem::path>& getShaderDirectoriesList()
     return gShaderDirectories;
 }
 
+bool findFileInDataDirectories(const std::filesystem::path& path, std::filesystem::path& fullPath)
+{
+    // Check if this is an absolute path.
+    if (path.is_absolute())
+    {
+        if (std::filesystem::exists(path))
+        {
+            fullPath = std::filesystem::canonical(path);
+            return true;
+        }
+    }
+
+    // Search in other paths.
+    for (const auto& dir : gDataDirectories)
+    {
+        fullPath = dir / path;
+        if (std::filesystem::exists(fullPath))
+        {
+            fullPath = std::filesystem::canonical(fullPath);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool findFileInShaderDirectories(const std::filesystem::path& path, std::filesystem::path& fullPath)
 {
     // Check if this is an absolute path.
@@ -216,6 +242,8 @@ bool findFileInShaderDirectories(const std::filesystem::path& path, std::filesys
 
     return false;
 }
+
+
 
 std::filesystem::path findAvailableFilename(const std::string& prefix, const std::filesystem::path& directory, const std::string& extension)
 {

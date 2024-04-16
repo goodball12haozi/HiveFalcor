@@ -192,6 +192,13 @@ FALCOR_API std::vector<std::filesystem::path> globFilesInDirectories(
     bool firstMatchOnly = false
 );
 
+    /** Finds a file in one of the data search directories.
+    \param[in] path The file path to look for.
+    \param[in] fullPath If the file was found, the full path to the file. If the file wasn't found, this is invalid.
+    \return Returns true if the file was found, false otherwise.
+*/
+FALCOR_API bool findFileInDataDirectories(const std::filesystem::path& path, std::filesystem::path& fullPath);
+
 /**
  * Finds a shader file. If in development mode (see isDevelopmentMode()), shaders are searched
  * within the source directories. Otherwise, shaders are searched in the Shaders directory
