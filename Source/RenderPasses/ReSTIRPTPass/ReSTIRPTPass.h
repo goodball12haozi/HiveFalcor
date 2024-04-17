@@ -242,6 +242,4 @@ private:
     ref<Texture> mpNeighborOffsets;
 
     ref<Buffer> mNRooksPatternBuffer;
-
-    ref<Device> mpDevice;
 };

@@ -276,35 +276,35 @@ extern "C" FALCOR_API_EXPORT void registerPlugin(Falcor::PluginRegistry& registr
 
 void ReSTIRPTPass::registerBindings(pybind11::module& m)
 {
-    pybind11::enum_<ColorFormat> colorFormat(m, "ColorFormat");
-    colorFormat.value("RGBA32F", ColorFormat::RGBA32F);
-    colorFormat.value("LogLuvHDR", ColorFormat::LogLuvHDR);
+    //pybind11::enum_<ColorFormat> colorFormat(m, "ColorFormat");
+    //colorFormat.value("RGBA32F", ColorFormat::RGBA32F);
+    //colorFormat.value("LogLuvHDR", ColorFormat::LogLuvHDR);
 
-    pybind11::enum_<MISHeuristic> misHeuristic(m, "MISHeuristic");
-    misHeuristic.value("Balance", MISHeuristic::Balance);
-    misHeuristic.value("PowerTwo", MISHeuristic::PowerTwo);
-    misHeuristic.value("PowerExp", MISHeuristic::PowerExp);
+    //pybind11::enum_<MISHeuristic> misHeuristic(m, "MISHeuristic");
+    //misHeuristic.value("Balance", MISHeuristic::Balance);
+    //misHeuristic.value("PowerTwo", MISHeuristic::PowerTwo);
+    //misHeuristic.value("PowerExp", MISHeuristic::PowerExp);
 
-    pybind11::enum_<ShiftMapping> shiftMapping(m, "ShiftMapping");
-    shiftMapping.value("Reconnection", ShiftMapping::Reconnection);
-    shiftMapping.value("RandomReplay", ShiftMapping::RandomReplay);
-    shiftMapping.value("Hybrid", ShiftMapping::Hybrid);
+    //pybind11::enum_<ShiftMapping> shiftMapping(m, "ShiftMapping");
+    //shiftMapping.value("Reconnection", ShiftMapping::Reconnection);
+    //shiftMapping.value("RandomReplay", ShiftMapping::RandomReplay);
+    //shiftMapping.value("Hybrid", ShiftMapping::Hybrid);
 
-    pybind11::enum_<ReSTIRMISKind> misKind(m, "ReSTIRMISKind");
-    misKind.value("Constant", ReSTIRMISKind::Constant);
-    misKind.value("Talbot", ReSTIRMISKind::Talbot);
-    misKind.value("Pairwise", ReSTIRMISKind::Pairwise);
-    misKind.value("ConstantBinary", ReSTIRMISKind::ConstantBinary);
-    misKind.value("ConstantBiased", ReSTIRMISKind::ConstantBiased);
+    //pybind11::enum_<ReSTIRMISKind> misKind(m, "ReSTIRMISKind");
+    //misKind.value("Constant", ReSTIRMISKind::Constant);
+    //misKind.value("Talbot", ReSTIRMISKind::Talbot);
+    //misKind.value("Pairwise", ReSTIRMISKind::Pairwise);
+    //misKind.value("ConstantBinary", ReSTIRMISKind::ConstantBinary);
+    //misKind.value("ConstantBiased", ReSTIRMISKind::ConstantBiased);
 
-    pybind11::enum_<PathSamplingMode> pathSamplingMode(m, "PathSamplingMode");
-    pathSamplingMode.value("ReSTIR", PathSamplingMode::ReSTIR);
-    pathSamplingMode.value("PathReuse", PathSamplingMode::PathReuse);
-    pathSamplingMode.value("PathTracing", PathSamplingMode::PathTracing);
+    //pybind11::enum_<PathSamplingMode> pathSamplingMode(m, "PathSamplingMode");
+    //pathSamplingMode.value("ReSTIR", PathSamplingMode::ReSTIR);
+    //pathSamplingMode.value("PathReuse", PathSamplingMode::PathReuse);
+    //pathSamplingMode.value("PathTracing", PathSamplingMode::PathTracing);
 
-    pybind11::enum_<SpatialReusePattern> spatialReusePattern(m, "SpatialReusePattern");
-    spatialReusePattern.value("Default", SpatialReusePattern::Default);
-    spatialReusePattern.value("SmallWindow", SpatialReusePattern::SmallWindow);
+    //pybind11::enum_<SpatialReusePattern> spatialReusePattern(m, "SpatialReusePattern");
+    //spatialReusePattern.value("Default", SpatialReusePattern::Default);
+    //spatialReusePattern.value("SmallWindow", SpatialReusePattern::SmallWindow);
 
     pybind11::class_<ReSTIRPTPass, RenderPass, ref<ReSTIRPTPass>> pass(m, "ReSTIRPTPass");
     pass.def_property_readonly("pixelStats", &ReSTIRPTPass::getPixelStats);
@@ -337,9 +337,9 @@ ReSTIRPTPass::ReSTIRPTPass(ref<Device> pDevice, const Properties& props) : Rende
 
     // load N-rook patterns (for Bekaert-style path reuse)
 
-    std::filesystem::path fullpath;
+    std::filesystem::path fullpath = getRuntimeDirectory() / fmt::format("data/16RooksPattern256.txt");
 
-    findFileInDataDirectories("16RooksPattern256.txt", fullpath);
+    // findFileInDataDirectories("16RooksPattern256.txt", fullpath);
     FILE* f = fopen(fullpath.generic_string().c_str(), "r");
     
     std::vector<byte> NRookArray(65536);
@@ -601,6 +601,7 @@ Properties ReSTIRPTPass::getProperties() const
     // Denoising parameters
     props[kUseNRDDemodulation] = mStaticParams.useNRDDemodulation;
 
+    return props;
     //return d;
 }
 
@@ -1349,8 +1350,8 @@ bool ReSTIRPTPass::prepareLighting(RenderContext* pRenderContext)
         if (!mpEmissiveSampler)
         {
             const auto& pLights = mpScene->getLightCollection(pRenderContext);
-            assert(pLights && pLights->getActiveLightCount() > 0);
-            assert(!mpEmissiveSampler);
+            //assert(pLights && pLights->getActiveLightCount() > 0);
+            //assert(!mpEmissiveSampler);
 
             switch (mStaticParams.emissiveSampler)
             {

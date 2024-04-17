@@ -18,4 +18,6 @@ target_sources(ReSTIROGPass PRIVATE
     TracePass.rt.slang
 )
 
+target_copy_shaders(ReSTIROGPass RenderPasses/ReSTIROGPass)
+
 target_source_group(ReSTIROGPass "RenderPasses")

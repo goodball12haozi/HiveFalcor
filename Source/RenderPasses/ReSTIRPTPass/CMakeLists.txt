@@ -23,4 +23,6 @@ target_sources(ReSTIRPTPass PRIVATE
     TracePass.cs.slang
 )
 
+target_copy_shaders(ReSTIRPTPass RenderPasses/ReSTIRPTPass)
+
 target_source_group(ReSTIRPTPass "RenderPasses")
