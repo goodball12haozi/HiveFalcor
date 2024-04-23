@@ -100,6 +100,18 @@ struct PBRTCoatedConductorMaterialInstance : MaterialInstanceBase, IMaterialInst
         return p;
     }
 
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold)
+    {
+        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
+        return false;
+    }
+
+    bool classifyAsRough(float roughnessThreshold)
+    {
+        return false;
+    }
+
     uint getLobeTypes(const ShadingData sd)
     {
         return (uint)(interfaceD.isSingular() ? LobeType::DeltaReflection : LobeType::SpecularReflection)

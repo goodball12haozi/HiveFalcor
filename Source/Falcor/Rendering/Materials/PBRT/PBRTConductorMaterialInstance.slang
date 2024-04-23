@@ -111,6 +111,18 @@ struct PBRTConductorBSDF : IBSDF, IDifferentiable
         r.roughnessBSDFNotation = D.alpha;
         return r;
     }
+
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold)
+    {
+        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
+        return false;
+    }
+
+    bool classifyAsRough(float roughnessThreshold)
+    {
+        return false;
+    }
 };
 
 struct PBRTConductorMaterialInstance : MaterialInstanceBase, IMaterialInstance
@@ -177,6 +189,18 @@ struct PBRTConductorMaterialInstance : MaterialInstanceBase, IMaterialInstance
     uint getLobeTypes(const ShadingData sd)
     {
         return (uint)(bsdf.D.isSingular() ? LobeType::DeltaReflection : LobeType::SpecularReflection);
+    }
+
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold)
+    {
+        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
+        return false;
+    }
+
+    bool classifyAsRough(float roughnessThreshold)
+    {
+        return false;
     }
 
 };

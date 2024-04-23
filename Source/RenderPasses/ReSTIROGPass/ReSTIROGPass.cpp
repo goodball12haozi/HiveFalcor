@@ -463,6 +463,9 @@ void ReSTIROGPass::execute(RenderContext* pRenderContext, const RenderData& rend
 
     // Trace pass.
     FALCOR_ASSERT(mpTracePass);
+
+ #pragma region Trace and Resolve
+
     tracePass(pRenderContext, renderData, *mpTracePass);
 
     // Launch separate passes to trace delta reflection and transmission paths to generate respective guide buffers.
@@ -475,6 +478,8 @@ void ReSTIROGPass::execute(RenderContext* pRenderContext, const RenderData& rend
 
     // Resolve pass.
     resolvePass(pRenderContext, renderData);
+#pragma endregion
+
 
     endFrame(pRenderContext, renderData);
 }

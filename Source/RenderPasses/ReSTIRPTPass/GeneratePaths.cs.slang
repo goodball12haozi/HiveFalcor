@@ -33,7 +33,7 @@ import Rendering.Materials.StandardMaterial;
 import Rendering.Materials.ClothMaterial;
 import Rendering.Materials.HairMaterial;
 import LoadShadingData;
-import PathTracer;
+// import PathTracer;
 import PathState;
 import Params;
 import PathReservoir;

@@ -726,51 +726,55 @@ void ReSTIRPTPass::execute(RenderContext* pRenderContext, const RenderData& rend
                     generatePaths(pRenderContext, renderData, 0);
 
                 // Launch main trace pass.
-                tracePass(pRenderContext, renderData, mpTracePass, "tracePass", 0);
+                //tracePass(pRenderContext, renderData, mpTracePass, "tracePass", 0);
             }
         }
 
-        if (mStaticParams.pathSamplingMode != PathSamplingMode::PathTracing)
-        {
-            // Launch restir merge pass.
-            if (mStaticParams.pathSamplingMode == PathSamplingMode::ReSTIR)
-            {
-                if (mEnableTemporalReuse && !skipTemporalReuse)
-                {
-                    if (mStaticParams.shiftStrategy == ShiftMapping::Hybrid)
-                        PathRetracePass(pRenderContext, restir_i, renderData, true, 0);
-                    // a separate pass to trace rays for hybrid shift/random number replay
-                    PathReusePass(pRenderContext, restir_i, renderData, true, 0, !mEnableSpatialReuse);
-                }
-            }
-            else if (mStaticParams.pathSamplingMode == PathSamplingMode::PathReuse)
-            {
-                PathReusePass(pRenderContext, restir_i, renderData, false, -1, false);
-            }
+#pragma region ReSTIR PT 
+        // if (mStaticParams.pathSamplingMode != PathSamplingMode::PathTracing)
+        //{
+        //     // Launch restir merge pass.
+        //     if (mStaticParams.pathSamplingMode == PathSamplingMode::ReSTIR)
+        //     {
+        //         if (mEnableTemporalReuse && !skipTemporalReuse)
+        //         {
+        //             if (mStaticParams.shiftStrategy == ShiftMapping::Hybrid)
+        //                 PathRetracePass(pRenderContext, restir_i, renderData, true, 0);
+        //             // a separate pass to trace rays for hybrid shift/random number replay
+        //             PathReusePass(pRenderContext, restir_i, renderData, true, 0, !mEnableSpatialReuse);
+        //         }
+        //     }
+        //     else if (mStaticParams.pathSamplingMode == PathSamplingMode::PathReuse)
+        //     {
+        //         PathReusePass(pRenderContext, restir_i, renderData, false, -1, false);
+        //     }
 
-            if (mEnableSpatialReuse)
-            {
-                // multiple rounds?
-                for (int spatialRoundId = 0; spatialRoundId < mNumSpatialRounds; spatialRoundId++)
-                {
-                    // a separate pass to trace rays for hybrid shift/random number replay
-                    if (mStaticParams.shiftStrategy == ShiftMapping::Hybrid)
-                        PathRetracePass(pRenderContext, restir_i, renderData, false, spatialRoundId);
-                    PathReusePass(pRenderContext, restir_i, renderData, false, spatialRoundId, spatialRoundId == mNumSpatialRounds - 1);
-                }
-            }
+        //    if (mEnableSpatialReuse)
+        //    {
+        //        // multiple rounds?
+        //        for (int spatialRoundId = 0; spatialRoundId < mNumSpatialRounds; spatialRoundId++)
+        //        {
+        //            // a separate pass to trace rays for hybrid shift/random number replay
+        //            if (mStaticParams.shiftStrategy == ShiftMapping::Hybrid)
+        //                PathRetracePass(pRenderContext, restir_i, renderData, false, spatialRoundId);
+        //            PathReusePass(pRenderContext, restir_i, renderData, false, spatialRoundId, spatialRoundId == mNumSpatialRounds - 1);
+        //        }
+        //    }
 
-            if (restir_i == numPasses - 1)
-                mReservoirFrameCount++; // mark as at least one temporally reused frame
+        //    if (restir_i == numPasses - 1)
+        //        mReservoirFrameCount++; // mark as at least one temporally reused frame
 
-            if (mEnableTemporalReuse && mStaticParams.pathSamplingMode == PathSamplingMode::ReSTIR)
-            {
-                if ((!mEnableSpatialReuse || mNumSpatialRounds % 2 == 0))
-                    pRenderContext->copyResource(mpTemporalReservoirs[restir_i].get(), mpOutputReservoirs.get());
-                if (restir_i == numPasses - 1)
-                    pRenderContext->copyResource(mpTemporalVBuffer.get(), renderData[kInputVBuffer].get());
-            }
-        }
+        //    if (mEnableTemporalReuse && mStaticParams.pathSamplingMode == PathSamplingMode::ReSTIR)
+        //    {
+        //        if ((!mEnableSpatialReuse || mNumSpatialRounds % 2 == 0))
+        //            pRenderContext->copyResource(mpTemporalReservoirs[restir_i].get(), mpOutputReservoirs.get());
+        //        if (restir_i == numPasses - 1)
+        //            pRenderContext->copyResource(mpTemporalVBuffer.get(), renderData[kInputVBuffer].get());
+        //    }
+        //}
+#pragma endregion
+
+
         mParams.seed++;
     }
 

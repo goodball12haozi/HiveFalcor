@@ -154,6 +154,21 @@ struct StandardMaterialInstance : MaterialInstanceBase, IMaterialInstance
         return p;
     }
 
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd,float roughnessThreshold)
+    {
+        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
+        float3 wiLocal = sf.toLocal(sd.V);
+        StandardBSDF bsdf = StandardBSDF(wiLocal, sd.mtl, data);
+        return bsdf.pDiffuseReflection > 0 || data.roughness > roughnessThreshold; 
+    }
+
+    bool classifyAsRough(float roughnessThreshold)
+    {
+        return data.roughness > roughnessThreshold;
+    }
+
+
     uint getLobeTypes(const ShadingData sd)
     {
         return StandardBSDF::getLobeTypes(data);

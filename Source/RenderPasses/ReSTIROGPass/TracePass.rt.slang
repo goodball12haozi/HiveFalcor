@@ -474,11 +474,11 @@ struct Scheduler
             return;
         }
 
-        // Trace path.
-        while (path.isActive())
-        {
-            nextHit(path);
-        }
+        //TODO:暂时忽略二次以上的弹射        // Trace path.
+        // while (path.isActive())
+        // {
+        //     nextHit(path);
+        // }
 
 #if !defined(DELTA_REFLECTION_PASS) && !defined(DELTA_TRANSMISSION_PASS)
         gPathTracer.writeOutput(path);

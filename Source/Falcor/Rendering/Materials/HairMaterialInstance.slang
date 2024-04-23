@@ -138,4 +138,15 @@ struct HairMaterialInstance : MaterialInstanceBase, IMaterialInstance
         return (uint)LobeType::DiffuseReflection | (uint)LobeType::DiffuseTransmission;
     }
 
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold)
+    {
+        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
+        return false;
+    }
+
+    bool classifyAsRough(float roughnessThreshold)
+    {
+        return false;
+    }
 };

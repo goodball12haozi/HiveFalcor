@@ -211,4 +211,16 @@ struct PBRTDielectricMaterialInstance : MaterialInstanceBase, IMaterialInstance
                                    : ((uint)LobeType::SpecularReflection | (uint)LobeType::SpecularTransmission);
     }
 
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold)
+    {
+        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
+        return false;
+    }
+
+    bool classifyAsRough(float roughnessThreshold)
+    {
+        return false;
+    }
+
 };

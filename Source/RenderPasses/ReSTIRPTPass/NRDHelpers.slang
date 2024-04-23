@@ -25,8 +25,10 @@
  # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **************************************************************************/
-import Rendering.Materials.IBSDF;
+import Rendering.Materials.IMaterialInstance;
+ import Rendering.Materials.IBSDF;
 import Rendering.Materials.Microfacet;
+import Rendering.Materials.IsotropicGGX;
 import RenderPasses.Shared.Denoising.NRDBuffers;
 import RenderPasses.Shared.Denoising.NRDConstants;
 import RenderPasses.Shared.Denoising.NRDHelpers;
@@ -58,7 +60,7 @@ void setNRDPrimaryHitReflectance(NRDBuffers outputNRD, const bool useNRDDemodula
             float3 diffuseReflectionAlbedo = max(kNRDMinReflectance, bsdfProperties.diffuseReflectionAlbedo);
             outputNRD.primaryHitDiffuseReflectance[pixel] = float4(diffuseReflectionAlbedo, 1.f);
 
-            const float NdotV = saturate(dot(sd.N, sd.V));
+            const float NdotV = saturate(dot(bsdfProperties.guideNormal, sd.V));
             const float ggxAlpha = bsdfProperties.roughness * bsdfProperties.roughness;
             float3 specularReflectance = approxSpecularIntegralGGX(bsdfProperties.specularReflectionAlbedo, ggxAlpha, NdotV);
             float3 specularReflectionAlbedo = max(kNRDMinReflectance, specularReflectance);
@@ -111,7 +113,7 @@ void setNRDSampleReflectance(const bool useNRDDemodulation, inout PathState path
             }
             else if (path.isSpecularPrimaryHit())
             {
-                const float NdotV = saturate(dot(sd.N, sd.V));
+                const float NdotV = saturate(dot(bsdfProperties.guideNormal, sd.V));
                 const float ggxAlpha = bsdfProperties.roughness * bsdfProperties.roughness;
                 float3 specularReflectance = approxSpecularIntegralGGX(bsdfProperties.specularReflectionAlbedo, ggxAlpha, NdotV);
                 float3 specularReflectionAlbedo = max(kNRDMinReflectance, specularReflectance);
@@ -141,7 +143,7 @@ float3 computeSampleReflectance(const bool useNRDDemodulation, bool isDiffusePri
         }
         else if (isSpecularPrimaryHit)
         {
-            const float NdotV = saturate(dot(sd.N, sd.V));
+            const float NdotV = saturate(dot(bsdfProperties.guideNormal, sd.V));
             const float ggxAlpha = bsdfProperties.roughness * bsdfProperties.roughness;
             float3 specularReflectance = approxSpecularIntegralGGX(bsdfProperties.specularReflectionAlbedo, ggxAlpha, NdotV);
             specularReflectance = max(kNRDMinReflectance, specularReflectance);

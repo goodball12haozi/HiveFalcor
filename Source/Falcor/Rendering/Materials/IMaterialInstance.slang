@@ -35,6 +35,7 @@ __exported import Utils.Sampling.SampleGeneratorInterface;
 __exported import DiffRendering.DiffMaterialData;
 import Rendering.Volumes.PhaseFunction;
 import Scene.Material.VolumeProperties;
+__exported import Scene.Material.MaterialData;
 
 /** Hints passed in when creating a material instance.
 */
@@ -192,7 +193,12 @@ interface IMaterialInstance
     */
     uint getLobeTypes(const ShadingData sd);
 
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold);
 
+    bool classifyAsRough(float roughnessThreshold);
+
+    
     /** Indicates if the volume properties are taken from the material instance or not
         \return True if the volume properties are textured.
     */

@@ -279,7 +279,7 @@ struct StandardBSDF : IBSDF, IDifferentiable
         {
             valid = specularReflection.sample(wi, wo, pdf, weight, lobeType, sg);
             weight /= pSpecularReflection;
-            weight *= (1.f - specTrans);
+            weight *= (1.f - specTrans);    
             pdf *= pSpecularReflection;
             if (pDiffuseReflection > 0.f)
                 pdf += pDiffuseReflection * diffuseReflection.evalPdf(wi, wo);

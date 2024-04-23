@@ -67,6 +67,18 @@ struct PBRTDiffuseBSDF : IBSDF, IDifferentiable
         r.roughnessBSDFNotation = float2(0.5f, 0.5f);
         return r;
     }
+
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold)
+    {
+        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
+        return false;
+    }
+
+    bool classifyAsRough(float roughnessThreshold)
+    {
+        return false;
+    }
 };
 
 struct PBRTDiffuseMaterialInstance : MaterialInstanceBase, IMaterialInstance
@@ -137,6 +149,18 @@ struct PBRTDiffuseMaterialInstance : MaterialInstanceBase, IMaterialInstance
     uint getLobeTypes(const ShadingData sd)
     {
         return (uint)LobeType::DiffuseReflection;
+    }
+
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold)
+    {
+        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
+        return false;
+    }
+
+    bool classifyAsRough(float roughnessThreshold)
+    {
+        return false;
     }
 
 };

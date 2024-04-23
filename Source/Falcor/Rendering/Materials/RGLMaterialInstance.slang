@@ -197,6 +197,18 @@ struct RGLMaterialInstance : MaterialInstanceBase, IMaterialInstance
         return pdf;
     }
 
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold)
+    {
+        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
+        return false;
+    }
+
+    bool classifyAsRough(float roughnessThreshold)
+    {
+        return false;
+    }
+
     BSDFProperties getProperties(const ShadingData sd)
     {
         BSDFProperties p = {};

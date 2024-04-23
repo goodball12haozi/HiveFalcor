@@ -1,15 +1,18 @@
-// #include "Utils/Math/MathConstants.slangh"
+#include "Utils/Math/MathConstants.slangh"
 
-// import Scene.ShadingData;
-// import Scene.Scene;
-// import Scene.Material.TextureSampler;
-// import Scene.Material.MaterialFactory;
-// import Utils.Math.MathHelpers;
-// import Utils.Color.ColorHelpers;
-// import Utils.Sampling.SampleGenerator;
+import Scene.ShadingData;
+import Scene.Scene;
+import Scene.Material.TextureSampler;
+import Scene.Material.MaterialFactory;
+import Utils.Math.MathHelpers;
+import Utils.Color.ColorHelpers;
+import Utils.Sampling.SampleGenerator;
 // import Rendering.Materials.BxDF;
-// import Rendering.Materials.Fresnel;
-// import Rendering.Materials.Microfacet;
+import Rendering.Materials.Fresnel;
+import Rendering.Materials.Microfacet;
+import PathState;
+import LoadShadingData;
+
 
 
 // StandardBSDFData getStandardBSDFData(const ShadingData sd, SamplerState s, const BasicMaterialData data)
@@ -73,23 +76,34 @@
 // //     return (dot(wi, faceN) > 0) != (dot(wo, faceN) > 0);
 // // }
 
-// // not considering transmission cases for now
+// not considering transmission cases for now
 // bool hasRoughComponent(const ShadingData sd, float roughnessThreshold)
+// bool hasRoughComponent(PathState path, bool isPrimaryHit, const ShadingData sd, float roughnessThreshold)
 // {
-//     BasicMaterialData bmd = gScene.materials.getBasicMaterialData(sd.materialID);
-//     SamplerState s = gScene.materials.getTextureSampler(gScene.materials.getMaterialHeader(sd.materialID).getDefaultTextureSamplerID());
-//     StandardBSDFData data = getStandardBSDFData(sd, s, bmd);
+//     // BasicMaterialData bmd = gScene.materials.getBasicMaterialData(sd.materialID);
+//     // SamplerState s = gScene.materials.getTextureSampler(gScene.materials.getMaterialHeader(sd.materialID).getDefaultTextureSamplerID());
+//     //StandardBSDFData data = getStandardBSDFData(sd, s, bmd);
 
-//     FalcorBSDF bsdf = FalcorBSDF(sd, data);
+//     // diffuseReflection
+//     // FalcorBSDF bsdf = FalcorBSDF(sd, data);
 
+//     let hints = getMaterialInstanceHints(path.hit, isPrimaryHit);
 //     let lod = ExplicitLodTextureSampler(0.f);
-//     return bsdf.pDiffuseReflection > 0 || gScene.materials.getBSDF(sd, lod).getProperties(sd).roughness > roughnessThreshold;
+//     const IMaterialInstance mi = gScene.materials.getMaterialInstance(sd, lod, hints);
+//     BSDFProperties bsdfProperties = mi.getProperties(sd);
+//     mi.getLobeTypes(sd);
+//     return mi.pDiffuseReflection > 0 || bsdfProperties.roughness > roughnessThreshold;
+//     //return bsdf.pDiffuseReflection > 0 || gScene.materials.getBSDF(sd, lod).getProperties(sd).roughness > roughnessThreshold;
 // }
 
 // bool classifyAsRough(const ShadingData sd, float roughnessThreshold)
+// bool classifyAsRough(PathState path,bool isPrimaryHit,const ShadingData sd,float roughnessThreshold)
 // {
+//     let hints = getMaterialInstanceHints(path.hit, isPrimaryHit);
 //     let lod = ExplicitLodTextureSampler(0.f);
-//     let bsdfProperties = gScene.materials.getBSDF(sd, lod).getProperties(sd);
+//     const IMaterialInstance mi = gScene.materials.getMaterialInstance(sd, lod, hints);
+//     BSDFProperties bsdfProperties = mi.getProperties(sd);
+//     //let bsdfProperties = gScene.materials.getBSDF(sd, lod).getProperties(sd);
 //     return bsdfProperties.roughness > roughnessThreshold;
 // }
 

@@ -112,6 +112,7 @@ VertexData loadVertexData(const HitInfo hit, const float3 rayDir, out uint mater
 */
 void adjustShadingData(inout ShadingData sd, const HitInfo hit, const float curveSphereRadius, const VertexData v, const bool isPrimary)
 {
+    ShadingFrame sf;
     // Set sphere radius at the curve intersection point.
     // Reuse the metallic field.
 #if SCENE_HAS_GEOMETRY_TYPE(GEOMETRY_TYPE_CURVE)
@@ -119,9 +120,9 @@ void adjustShadingData(inout ShadingData sd, const HitInfo hit, const float curv
 #endif
 
 #if GBUFFER_ADJUST_SHADING_NORMALS
-    if (kAdjustShadingNormals || isPrimary) adjustShadingNormal(sd, v);
+    if (kAdjustShadingNormals || isPrimary) adjustShadingNormal(sd, sd.frame);
 #else
-    if (kAdjustShadingNormals && !isPrimary) adjustShadingNormal(sd, v);
+    if (kAdjustShadingNormals && !isPrimary) adjustShadingNormal(sd, sd.frame);
 #endif
 }
 
@@ -174,4 +175,20 @@ ShadingData loadShadingDataFootprint(const HitInfo hit, const float3 viewDir, co
     ShadingData sd = gScene.materials.prepareShadingData(v, materialID, viewDir, lod);
     adjustShadingData(sd, hit, curveSphereRadius, v, isPrimary);
     return sd;
+}
+
+/** Determine hints to use when creating the material instance.
+ */
+uint getMaterialInstanceHints(const HitInfo hit, const bool isPrimary)
+{
+    uint hints = 0;
+    if (hit.getType() == HitType::Triangle || hit.getType() == HitType::DisplacedTriangle)
+    {
+#if GBUFFER_ADJUST_SHADING_NORMALS
+        if (kAdjustShadingNormals || isPrimary) hints |= (uint)MaterialInstanceHints::AdjustShadingNormal;
+#else
+        if (kAdjustShadingNormals && !isPrimary) hints |= (uint)MaterialInstanceHints::AdjustShadingNormal;
+#endif
+    }
+    return hints;
 }
