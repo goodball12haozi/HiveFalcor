@@ -167,7 +167,7 @@ namespace
         { (uint32_t)PathSamplingMode::PathTracing, "Path Tracing" }
     };
 
-    const Gui::DropdownList kDebugOutputList = 
+    const Gui::DropdownList kDebugOutputList =
     {
         { (uint32_t)DebugOutput::TracePassOutput, "TracePassOutput" },
         { (uint32_t)DebugOutput::TemporalReuseOutput, "TemporalReuseOutput" }
@@ -341,7 +341,7 @@ ReSTIRPTPass::ReSTIRPTPass(ref<Device> pDevice, const Properties& props) : Rende
 
     // findFileInDataDirectories("16RooksPattern256.txt", fullpath);
     FILE* f = fopen(fullpath.generic_string().c_str(), "r");
-    
+
     std::vector<byte> NRookArray(65536);
     for (int i = 0; i < 8192; i++)
     {
@@ -726,11 +726,11 @@ void ReSTIRPTPass::execute(RenderContext* pRenderContext, const RenderData& rend
                     generatePaths(pRenderContext, renderData, 0);
 
                 // Launch main trace pass.
-                //tracePass(pRenderContext, renderData, mpTracePass, "tracePass", 0);
+                tracePass(pRenderContext, renderData, mpTracePass, "tracePass", 0);
             }
         }
 
-#pragma region ReSTIR PT 
+#pragma region ReSTIR PT
         // if (mStaticParams.pathSamplingMode != PathSamplingMode::PathTracing)
         //{
         //     // Launch restir merge pass.
@@ -822,7 +822,7 @@ ref<Texture> ReSTIRPTPass::createNeighborOffsetTexture(uint32_t sampleCount)
         offsets[index++] = int8_t((u - 0.5f) * R);
         offsets[index++] = int8_t((v - 0.5f) * R);
     }
-    
+
     return mpDevice->createTexture1D(sampleCount, ResourceFormat::RG8Snorm, 1, 1, offsets.get());
 }
 
@@ -1146,7 +1146,7 @@ bool ReSTIRPTPass::onMouseEvent(const MouseEvent& mouseEvent)
 void ReSTIRPTPass::updatePrograms()
 {
     if (mRecompile == false) return;
-    
+
     mStaticParams.rcDataOfflineMode = mSpatialNeighborCount > 3 && mStaticParams.shiftStrategy == ShiftMapping::Hybrid;
 
     auto defines = mStaticParams.getDefines(*this);
@@ -1881,7 +1881,7 @@ void ReSTIRPTPass::createComputePasses()
     auto defines = mStaticParams.getDefines(*this);
     DefineList sceneDefines = mpScene->getSceneDefines();
     defines.add(sceneDefines);
-    
+
     mpGeneratePaths = ComputePass::create(mpDevice, kGeneratePathsFilename, "main", defines, false);
     mpReflectTypes = ComputePass::create(mpDevice, kReflectTypesFile, "main", defines, false);
 
