@@ -32,8 +32,10 @@ import Utils.Math.MathHelpers;
 struct Camera
 {
     CameraData data;
+    CameraData prevData;
 
     float3 getPosition() { return data.posW; }
+    float3 getPosition(bool usePrev) { return usePrev ? data.prevPosW : data.posW; }
     float4x4 getViewProj() { return data.viewProjMat; }
 
     /** Computes a camera ray for a given pixel assuming a pinhole camera model.
@@ -54,6 +56,32 @@ struct Camera
         float invCos = 1.f / dot(normalize(data.cameraW), ray.dir);
         ray.tMin = data.nearZ * invCos;
         ray.tMax = data.farZ * invCos;
+
+        return ray;
+    }
+
+    float3 computeNonNormalizedRayDirPinholePrevFrame(uint2 pixel, uint2 frameDim)
+    {
+        // Compute sample position in screen space in [0,1] with origin at the top-left corner.
+        // The camera jitter offsets the sample by +-0.5 pixels from the pixel center.
+        float2 p = (pixel + float2(0.5f, 0.5f)) / frameDim + float2(-prevData.jitterX, prevData.jitterY);
+        float2 ndc = float2(2, -2) * p + float2(-1, 1);
+
+        // Compute the non-normalized ray direction assuming a pinhole camera.
+        return ndc.x * prevData.cameraU + ndc.y * prevData.cameraV + prevData.cameraW;
+    }
+
+    Ray computeRayPinholePrevFrame(uint2 pixel, uint2 frameDim)
+    {
+        Ray ray;
+
+        // Compute the normalized ray direction assuming a pinhole camera.
+        ray.origin = data.prevPosW;
+        ray.dir = normalize(computeNonNormalizedRayDirPinholePrevFrame(pixel, frameDim));
+
+        float invCos = 1.f / dot(normalize(prevData.cameraW), ray.dir);
+        ray.tMin = prevData.nearZ * invCos;
+        ray.tMax = prevData.farZ * invCos;
 
         return ray;
     }

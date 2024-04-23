@@ -264,6 +264,7 @@ namespace Falcor
     {
         calculateCameraParameters();
         var["data"].setBlob(mData);
+        var["prevData"].setBlob(mPrevData);
     }
 
     void Camera::setPatternGenerator(const ref<CPUSampleGenerator>& pGenerator, const float2& scale)
