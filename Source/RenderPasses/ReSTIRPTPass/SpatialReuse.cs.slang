@@ -74,7 +74,7 @@ struct PathReusePass
         float3 camPos = gScene.camera.data.posW;
         float centralDist = distance(camPos, centralSd.posW);
         float neighborDist = distance(camPos, neighborSd.posW);
-        return dot(centralSd.N, neighborSd.N) >= 0.5f && abs(centralDist - neighborDist) < 0.1f * centralDist;
+        return dot(centralSd.frame.N, neighborSd.frame.N) >= 0.5f && abs(centralDist - neighborDist) < 0.1f * centralDist;
     }
 
     ShadingData getPixelShadingData(int2 pixel, out PackedHitInfo PrimaryHitPacked)
@@ -150,6 +150,8 @@ struct PathReusePass
 
     void ReSTIR(const uint2 pixel)
     {
+
+
         var sg = TinyUniformSampleGenerator(pixel, (kCandidateSamples + 1 + gNumSpatialRounds) * params.seed + kCandidateSamples + 1 + gSpatialRoundId);
 
         // Compute offset into per-sample buffers. All samples are stored consecutively at this offset.
@@ -162,6 +164,10 @@ struct PathReusePass
         float centralM = dstReservoir.M;
         PackedHitInfo centralPrimaryHitPacked;
         ShadingData centralPrimarySd = getPixelShadingData(pixel, centralPrimaryHitPacked);
+
+        //Tianchen:
+        let lod = ExplicitLodTextureSampler(0.f);
+        IMaterialInstance mi = gScene.materials.getMaterialInstance(centralPrimarySd, lod);
 
         if (!isValidPackedHitInfo(centralPrimaryHitPacked)) return;
 
@@ -285,7 +291,7 @@ struct PathReusePass
                 }
                 else
                 {
-                    possibleToBeSelected = shiftAndMergeReservoir(params, false, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, tempDstReservoir,
+                    possibleToBeSelected = shiftAndMergeReservoir( mi, params, false, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, tempDstReservoir,
                         neighborPrimarySd, neighborReservoir, dummyRcData, true, sg, true, 1.f, true); // "true" means hypothetically selected as the sample
                 }
 
@@ -317,7 +323,7 @@ struct PathReusePass
                             if (!isValidGeometry(centralPrimarySd, tneighborPrimarySd)) continue;
 
                             float tneighborJacobian;
-                            float3 tneighborIntegrand = computeShiftedIntegrand(params, tneighborJacobian, tneighborPrimaryHitPacked, tneighborPrimarySd,
+                            float3 tneighborIntegrand = computeShiftedIntegrand( mi, params, tneighborJacobian, tneighborPrimaryHitPacked, tneighborPrimarySd,
                                 centralPrimarySd, tempDstReservoir, dummyRcData, true, sg);
                             float p_ = PathReservoir::computeWeight(tneighborIntegrand) * tneighborJacobian;
                             p_sum += p_ * tneighborReservoir.M;
@@ -369,7 +375,7 @@ struct PathReusePass
                 else
                     rcData = dummyRcData;
 
-                float3 prefixIntegrand = computeShiftedIntegrand(params, prefixJacobian, neighborPrimaryHitPacked, neighborPrimarySd,
+                float3 prefixIntegrand = computeShiftedIntegrand( mi, params, prefixJacobian, neighborPrimaryHitPacked, neighborPrimarySd,
                     centralPrimarySd, centralReservoir, rcData, true, sg);
 
                 prefix_approxPdf = PathReservoir::computeWeight(prefixIntegrand) * prefixJacobian;
@@ -385,7 +391,7 @@ struct PathReusePass
                 else
                     rcData = dummyRcData;
 
-                bool possibleToBeSelected = shiftAndMergeReservoir(params, false, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, tempDstReservoir,
+                bool possibleToBeSelected = shiftAndMergeReservoir( mi, params, false, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, tempDstReservoir,
                     neighborPrimarySd, neighborReservoir, rcData, true, sg, true, 1.f, true); // "true" means hypothetically selected as the sample
 
                 float neighborWeight = 0.f;
@@ -431,7 +437,7 @@ struct PathReusePass
 
                 float dstJacobian;
 
-                bool selected = shiftAndMergeReservoir(params, false, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, dstReservoir,
+                bool selected = shiftAndMergeReservoir( mi, params, false, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, dstReservoir,
                     neighborPrimarySd, neighborReservoir, dummyRcData, true, sg, true);
 
                 if (selected)
@@ -495,7 +501,7 @@ struct PathReusePass
                         float prefix_approxPdf;
                         int shiftCount = 0;
 
-                        float3 prefixIntegrand = computeShiftedIntegrand(params, prefixJacobian, prefixPrimaryHitPacked, prefixPrimarySd,
+                        float3 prefixIntegrand = computeShiftedIntegrand( mi, params, prefixJacobian, prefixPrimaryHitPacked, prefixPrimarySd,
                             centralPrimarySd, dstReservoir, dummyRcData, true, sg);
                         prefix_approxPdf = PathReservoir::computeWeight(prefixIntegrand) * prefixJacobian;
 
@@ -573,7 +579,7 @@ struct PathReusePass
                         bool isSpecularPrimaryHit = dstReservoir.pathFlags.decodeIsSpecularBounce(true) && !dstReservoir.pathFlags.decodeIsDeltaEvent(true);
 
                         let lod = ExplicitLodTextureSampler(0.f);
-                        let centralPrimaryBSDFProperties = gScene.materials.getBSDF(centralPrimarySd, lod).getProperties(centralPrimarySd);
+                        let centralPrimaryBSDFProperties = mi.getProperties(centralPrimarySd);
                         reflectance = computeSampleReflectance(kUseNRDDemodulation, isDiffusePrimaryHit, isSpecularPrimaryHit, centralPrimarySd, centralPrimaryBSDFProperties);
 
                         ShadingData RcVertexSd = loadShadingDataWithPrevVertexPosition(dstReservoir.rcVertexHit.getHitInfo(), centralPrimarySd.posW, false);
@@ -591,7 +597,7 @@ struct PathReusePass
                     HitInfo centralPrimaryHit = HitInfo(centralPrimaryHitPacked);
                     Ray ray = Ray(gScene.camera.getPosition(), -centralPrimarySd.V, 0, kRayTMax);
 
-                    traceDenoiserData(params, centralPrimaryHitPacked, centralPrimarySd,
+                    traceDenoiserData( mi, params, centralPrimaryHitPacked, centralPrimarySd,
                         dstReservoir.pathFlags, dstReservoir.initRandomSeed, hitDist, pathType, reflectance);
 
                     radiance = dstReservoir.F * dstReservoir.weight;

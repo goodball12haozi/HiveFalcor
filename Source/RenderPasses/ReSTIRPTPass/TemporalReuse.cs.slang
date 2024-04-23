@@ -105,6 +105,11 @@ struct PathReusePass
 
         PackedHitInfo centralPrimaryHitPacked;
         ShadingData centralPrimarySd = getPixelShadingData(pixel, centralPrimaryHitPacked);
+
+        // Tianchen:
+        let lod = ExplicitLodTextureSampler(0.f);
+        IMaterialInstance mi = gScene.materials.getMaterialInstance(centralPrimarySd, lod);
+
         if (!isValidPackedHitInfo(centralPrimaryHitPacked)) return;
 
         float3 color = 0.f;
@@ -173,7 +178,7 @@ struct PathReusePass
                             rcData = dummyRcData;
 
                         // shuangjia: 这一步等于是把temporalPath往currentPrimaryHit上靠做shift，得到一个新的temporalReservoir，即tempDstReservoir，这样要进行复用的currentReservoir和temporalReservoir都是从currentPrimaryHit出发的了
-                        possibleToBeSelected = shiftAndMergeReservoir(params, doTemporalUpdateForDynamicScene, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, tempDstReservoir,
+                        possibleToBeSelected = shiftAndMergeReservoir( mi, params, doTemporalUpdateForDynamicScene, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, tempDstReservoir,
                             temporalPrimarySd, temporalReservoir, rcData, true, sg, false, 1.f, true); // "true" means hypothetically selected as the sample
                     }
 
@@ -205,7 +210,7 @@ struct PathReusePass
                                 else
                                     rcData = dummyRcData;
 
-                                float3 tneighborIntegrand = computeShiftedIntegrand(params, tneighborJacobian, temporalPrimaryHitPacked, temporalPrimarySd,
+                                float3 tneighborIntegrand = computeShiftedIntegrand( mi, params, tneighborJacobian, temporalPrimaryHitPacked, temporalPrimarySd,
                                     centralPrimarySd, tempDstReservoir, rcData, true, sg, true); //usePrev
                                 p_ = PathReservoir::toScalar(tneighborIntegrand) * tneighborJacobian;
                                 p_sum += p_ * temporalReservoir.M;
@@ -238,7 +243,7 @@ struct PathReusePass
                 if (gNoResamplingForTemporalReuse)
                     selected = mergeReservoirNoResampling(params, dstReservoir, temporalReservoir, sg);
                 else
-                    selected = shiftAndMergeReservoir(params, doTemporalUpdateForDynamicScene, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, dstReservoir,
+                    selected = shiftAndMergeReservoir( mi, params, doTemporalUpdateForDynamicScene, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, dstReservoir,
                         temporalPrimarySd, temporalReservoir, dummyRcData, true, sg, false);
 
                 if (selected)
@@ -260,7 +265,7 @@ struct PathReusePass
                         int shiftCount = 1;
                         float prefix_approxPdf;
 
-                        float3 prefixIntegrand = computeShiftedIntegrand(params, prefixJacobian, temporalPrimaryHitPacked, temporalPrimarySd,
+                        float3 prefixIntegrand = computeShiftedIntegrand( mi, params, prefixJacobian, temporalPrimaryHitPacked, temporalPrimarySd,
                             centralPrimarySd, dstReservoir, dummyRcData, true, sg, true); //usePrev // determinisitically select the reconnection shift
                         prefix_approxPdf = PathReservoir::toScalar(prefixIntegrand) * prefixJacobian;
 
