@@ -229,7 +229,8 @@ struct PathReusePass
                     if (i == curSampleId) neighborReservoir = tempDstReservoir;
                     else neighborReservoir = temporalReservoir;
 
-                    mergeReservoirWithResamplingMIS(params, tempDstReservoir.F, dstJacobian, dstReservoir, tempDstReservoir, neighborReservoir, sg, false, misWeight);
+                    //TODO：Solve the unitialized value of dstReservoir 
+                    //mergeReservoirWithResamplingMIS(params, tempDstReservoir.F, dstJacobian, dstReservoir, tempDstReservoir, neighborReservoir, sg, false, misWeight);
                 }
 
                 if (dstReservoir.weight > 0)
