@@ -33,7 +33,8 @@ struct PathReusePass
 
     RWTexture2D<float4> outputColor; ///< Output resolved color.
     RWTexture2D<float4> outputDebug;
-    StructuredBuffer<PathReservoir> outputReservoirs;     // reservoir from previous pass
+    StructuredBuffer<PathReservoir> outputReservoirs;                        // reservoir from previous pass
+    // RWStructuredBuffer<PathReservoir> outputReservoirs;   // reservoir from previous pass
     RWStructuredBuffer<PathReservoir> temporalReservoirs; // resulting reservoir for next frame
     StructuredBuffer<PixelReconnectionData> reconnectionDataBuffer;
     StructuredBuffer<PathReuseMISWeight> misWeightBuffer;
@@ -150,7 +151,7 @@ struct PathReusePass
 
     void ReSTIR(const uint2 pixel)
     {
-
+        //return;
 
         var sg = TinyUniformSampleGenerator(pixel, (kCandidateSamples + 1 + gNumSpatialRounds) * params.seed + kCandidateSamples + 1 + gSpatialRoundId);
 
@@ -158,6 +159,9 @@ struct PathReusePass
         const uint centralOffset = params.getReservoirOffset(pixel);
         PathReservoir dstReservoir = outputReservoirs[centralOffset];
         PathReservoir centralReservoir = dstReservoir;
+
+        // outputColor[pixel].rgb = dstReservoir.F; // OK
+        // return;
 
         float3 initialColor = dstReservoir.F * dstReservoir.weight;
 
@@ -187,6 +191,8 @@ struct PathReusePass
 
         int neighborCount = getNeighborCount();
         const uint startIndex = sampleNext1D(sg) * kNeighborOffsetCount;
+
+        //return;
 
 #if BPR
         ////////////////////////////////
@@ -345,9 +351,12 @@ struct PathReusePass
         /////////////////////
         else if (ReSTIRMISKind(kSpatialReSTIRMISKind) == ReSTIRMISKind::Pairwise)
         {
+            // return;
+            // outputColor[pixel].rgb = dstReservoir.F; // OK
+            // return;
             int validNeighborCount = 0;
             float canonicalWeight = 1;
-
+            // neighborCount = 1;//TODO:checkpoint 00 
             for (int i = 0; i < neighborCount; ++i)
             {
                 int2 neighborPixel = getNextNeighborPixel(startIndex, pixel, i);
@@ -359,6 +368,8 @@ struct PathReusePass
                 if (!isValidPackedHitInfo(neighborPrimaryHitPacked)) continue;
                 if (!isValidGeometry(centralPrimarySd, neighborPrimarySd)) continue;
 
+                //return;
+                
                 PathReservoir neighborReservoir = outputReservoirs[params.getReservoirOffset(neighborPixel)];
 
                 float dstJacobian;
@@ -368,6 +379,9 @@ struct PathReusePass
                 float prefix_approxPdf = 0.f;
 
                 float prefixJacobian;
+
+                // outputColor[pixel].rgb = dstReservoir.F; //OK
+                // return;
 
                 ReconnectionData rcData;
                 if (ShiftMapping(kShiftStrategy) == ShiftMapping::Hybrid && centralReservoir.pathFlags.rcVertexLength() > 1)
@@ -402,18 +416,27 @@ struct PathReusePass
                         / ((PathReservoir::computeWeight(neighborReservoir.F) / dstJacobian) * neighborReservoir.M + PathReservoir::computeWeight(tempDstReservoir.F) * centralReservoir.M / (neighborCount));
                     if (isnan(neighborWeight) || isinf(neighborWeight)) neighborWeight = 0.f;
                 }
-
-                mergeReservoirWithResamplingMIS(params, tempDstReservoir.F, dstJacobian, dstReservoir, tempDstReservoir, neighborReservoir, sg, true, neighborWeight);
+                // outputColor[pixel].rgb = dstReservoir.F; //OK
+                // return;
+                // mergeReservoirWithResamplingMIS( params, tempDstReservoir.F, dstJacobian, dstReservoir, tempDstReservoir, neighborReservoir, sg, true, neighborWeight );
+                // outputColor[pixel].rgb = dstReservoir.F; //Not OK
+                // return;
             }
 
-            mergeReservoirWithResamplingMIS(params, centralReservoir.F, 1.f, dstReservoir, centralReservoir, centralReservoir, sg, true, canonicalWeight);
-
+            // mergeReservoirWithResamplingMIS( params, centralReservoir.F, 1.f, dstReservoir, centralReservoir, centralReservoir, sg, true, canonicalWeight );
+            // outputColor[pixel].rgb = dstReservoir.F; // Not OK
+            // return;
             if (dstReservoir.weight > 0)
             {
                 dstReservoir.finalizeGRIS();
                 dstReservoir.weight /= (validNeighborCount + 1); // compensate for the fact that pairwise resampling MIS was not divided by (k+1)
             }
+            // outputColor[pixel].rgb = dstReservoir.F; // OK
+            // return;
             color = dstReservoir.F * dstReservoir.weight;
+            // outputColor[pixel].rgb = dstReservoir.F; //Not OK
+            // return;
+
         }
         /////////////////////
         /// CONSTANT RMIS ///
@@ -537,11 +560,33 @@ struct PathReusePass
         }
 #endif
 
+        //return;
+
         if (dstReservoir.weight < 0.f) dstReservoir.weight = 0.f;
         if (isnan(dstReservoir.weight) || isinf(dstReservoir.weight)) dstReservoir.weight = 0.f;
 
+        //return; //TODO: checkpoint 00 cornelbox
+
+        // TODO:Solve Below
+        //dstReservoir.init();
         if (PathSamplingMode(kPathSamplingMode) != PathSamplingMode::PathReuse)
+        {
             temporalReservoirs[centralOffset] = dstReservoir;
+            // outputReservoirs[centralOffset] = dstReservoir;
+            // outputReservoirs[centralOffset].init();
+            // outputReservoirs[centralOffset].F = dstReservoir.F;
+            // outputReservoirs[centralOffset].weight = dstReservoir.weight;
+            // outputReservoirs[centralOffset].M = dstReservoir.M;
+            // outputReservoirs[centralOffset].pathFlags = dstReservoir.pathFlags;
+
+            // outputColor[pixel].rgb = dstReservoir.F;//Not OK
+            // outputColor[pixel].rgb = outputReservoirs[centralOffset].F; //OK
+            // outputColor[pixel].rgb = temporalReservoirs[centralOffset].F; //OK
+        }
+
+        // TODO:Solve Above
+        //outputColor[pixel].rgb = dstReservoir.F; // OK
+        //return;
 
         if (any(isnan(color) || isinf(color) || color < 0.f)) color = 0.f;
         if (gIsLastRound)
@@ -554,6 +599,7 @@ struct PathReusePass
 
             outputColor[pixel] += float4(color / kSamplesPerPixel, 1.f);
 
+            //return;
             // Output Denoiser Data (developed for NRD v2.12, doesn't guarantee to work with the latest version)
             if (kOutputNRDData && PathSamplingMode(kPathSamplingMode) == PathSamplingMode::ReSTIR)
             {

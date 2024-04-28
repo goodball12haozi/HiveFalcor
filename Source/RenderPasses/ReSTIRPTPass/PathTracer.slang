@@ -758,6 +758,9 @@ struct PathTracer
             u -= p[lightType];
         }
 
+        lightType = {};
+        pdf = {};
+        
         return false;
     }
 

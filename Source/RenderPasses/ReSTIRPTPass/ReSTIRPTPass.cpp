@@ -731,47 +731,47 @@ void ReSTIRPTPass::execute(RenderContext* pRenderContext, const RenderData& rend
         }
 
 #pragma region ReSTIR PT
-        // if (mStaticParams.pathSamplingMode != PathSamplingMode::PathTracing)
-        //{
-        //     // Launch restir merge pass.
-        //     if (mStaticParams.pathSamplingMode == PathSamplingMode::ReSTIR)
-        //     {
-        //         if (mEnableTemporalReuse && !skipTemporalReuse)
-        //         {
-        //             if (mStaticParams.shiftStrategy == ShiftMapping::Hybrid)
-        //                 PathRetracePass(pRenderContext, restir_i, renderData, true, 0);
-        //             // a separate pass to trace rays for hybrid shift/random number replay
-        //             PathReusePass(pRenderContext, restir_i, renderData, true, 0, !mEnableSpatialReuse);
-        //         }
-        //     }
-        //     else if (mStaticParams.pathSamplingMode == PathSamplingMode::PathReuse)
-        //     {
-        //         PathReusePass(pRenderContext, restir_i, renderData, false, -1, false);
-        //     }
+         if (mStaticParams.pathSamplingMode != PathSamplingMode::PathTracing)
+        {
+             // Launch restir merge pass.
+             if (mStaticParams.pathSamplingMode == PathSamplingMode::ReSTIR)
+             {
+                 if (mEnableTemporalReuse && !skipTemporalReuse)
+                 {
+                     if (mStaticParams.shiftStrategy == ShiftMapping::Hybrid)
+                         PathRetracePass(pRenderContext, restir_i, renderData, true, 0);
+                     // a separate pass to trace rays for hybrid shift/random number replay
+                     PathReusePass(pRenderContext, restir_i, renderData, true, 0, !mEnableSpatialReuse);
+                 }
+             }
+             else if (mStaticParams.pathSamplingMode == PathSamplingMode::PathReuse)
+             {
+                 PathReusePass(pRenderContext, restir_i, renderData, false, -1, false);
+             }
 
-        //    if (mEnableSpatialReuse)
-        //    {
-        //        // multiple rounds?
-        //        for (int spatialRoundId = 0; spatialRoundId < mNumSpatialRounds; spatialRoundId++)
-        //        {
-        //            // a separate pass to trace rays for hybrid shift/random number replay
-        //            if (mStaticParams.shiftStrategy == ShiftMapping::Hybrid)
-        //                PathRetracePass(pRenderContext, restir_i, renderData, false, spatialRoundId);
-        //            PathReusePass(pRenderContext, restir_i, renderData, false, spatialRoundId, spatialRoundId == mNumSpatialRounds - 1);
-        //        }
-        //    }
+            if (mEnableSpatialReuse)
+            {
+                // multiple rounds?
+                for (int spatialRoundId = 0; spatialRoundId < mNumSpatialRounds; spatialRoundId++)
+                {
+                    // a separate pass to trace rays for hybrid shift/random number replay
+                    if (mStaticParams.shiftStrategy == ShiftMapping::Hybrid)
+                        PathRetracePass(pRenderContext, restir_i, renderData, false, spatialRoundId);
+                    PathReusePass(pRenderContext, restir_i, renderData, false, spatialRoundId, spatialRoundId == mNumSpatialRounds - 1);
+                }
+            }
 
-        //    if (restir_i == numPasses - 1)
-        //        mReservoirFrameCount++; // mark as at least one temporally reused frame
+            if (restir_i == numPasses - 1)
+                mReservoirFrameCount++; // mark as at least one temporally reused frame
 
-        //    if (mEnableTemporalReuse && mStaticParams.pathSamplingMode == PathSamplingMode::ReSTIR)
-        //    {
-        //        if ((!mEnableSpatialReuse || mNumSpatialRounds % 2 == 0))
-        //            pRenderContext->copyResource(mpTemporalReservoirs[restir_i].get(), mpOutputReservoirs.get());
-        //        if (restir_i == numPasses - 1)
-        //            pRenderContext->copyResource(mpTemporalVBuffer.get(), renderData[kInputVBuffer].get());
-        //    }
-        //}
+            if (mEnableTemporalReuse && mStaticParams.pathSamplingMode == PathSamplingMode::ReSTIR)
+            {
+                if ((!mEnableSpatialReuse || mNumSpatialRounds % 2 == 0))
+                    pRenderContext->copyResource(mpTemporalReservoirs[restir_i].get(), mpOutputReservoirs.get());
+                if (restir_i == numPasses - 1)
+                    pRenderContext->copyResource(mpTemporalVBuffer.get(), renderData[kInputVBuffer].get());
+            }
+        }
 #pragma endregion
 
 
@@ -1722,10 +1722,10 @@ void ReSTIRPTPass::PathReusePass(RenderContext* pRenderContext, uint32_t restir_
     var["gIsLastRound"] = mStaticParams.pathSamplingMode == PathSamplingMode::PathReuse || isLastRound;
 
     //pass["gScene"] = mpScene->getParameterBlock();
-    mpScene->bindShaderData(mpGeneratePaths->getRootVar()["gScene"]);
+    mpScene->bindShaderData(pass->getRootVar()["gScene"]);
 
     //pass["gPathTracer"] = mpPathTracerBlock;
-    var["gPathTracer"] = mpPathTracerBlock;
+    //var["gPathTracer"] = mpPathTracerBlock;
 
     mpPixelStats->prepareProgram(pass->getProgram(), pass->getRootVar());
     mpPixelDebug->prepareProgram(pass->getProgram(), pass->getRootVar());
@@ -1791,10 +1791,10 @@ void ReSTIRPTPass::PathRetracePass(RenderContext* pRenderContext, uint32_t resti
     }
 
     //pass["gScene"] = mpScene->getParameterBlock();
-    mpScene->bindShaderData(mpGeneratePaths->getRootVar()["gScene"]);
+    mpScene->bindShaderData(pass->getRootVar()["gScene"]);
 
     //pass["gPathTracer"] = mpPathTracerBlock;
-    var["gPathTracer"] = mpPathTracerBlock;
+    //var["gPathTracer"] = mpPathTracerBlock;
 
     mpPixelStats->prepareProgram(pass->getProgram(), pass->getRootVar());
     mpPixelDebug->prepareProgram(pass->getProgram(), pass->getRootVar());
@@ -1891,6 +1891,7 @@ void ReSTIRPTPass::createComputePasses()
         desc.addShaderModules(mpScene->getShaderModules());
         desc.addTypeConformances(mpScene->getTypeConformances());
         desc.addShaderLibrary(vShaderFileName).csEntry("main").setShaderModel(ShaderModel::SM6_5);
+        //desc.setCompilerFlags(SlangCompilerFlags::TreatWarningsAsErrors);
 
         return ComputePass::create(mpDevice, desc, defines, false);
 

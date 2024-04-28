@@ -148,7 +148,7 @@ struct PathRetracePass
         printSetPixel(pixel);
         logSetPixel(pixel);
 
-        ReSTIR(pixel);
+        // ReSTIR(pixel);
     }
 };
 

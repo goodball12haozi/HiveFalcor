@@ -74,6 +74,8 @@ void computeDerivativesAtPrimaryTriangleHit(const TriangleHit hit, uint2 pixel, 
 VertexData loadVertexData(const HitInfo hit, const float3 rayDir, out uint materialID, out float curveSphereRadius)
 {
     VertexData v = {};
+    curveSphereRadius = {};
+
 #if SCENE_HAS_GEOMETRY_TYPE(GEOMETRY_TYPE_TRIANGLE_MESH)
 #if SCENE_HAS_PROCEDURAL_GEOMETRY()
     if (hit.getType() == HitType::Triangle)
@@ -96,12 +98,11 @@ VertexData loadVertexData(const HitInfo hit, const float3 rayDir, out uint mater
     if (hit.getType() == HitType::Curve)
     {
         const CurveHit curveHit = hit.getCurveHit();
-        v = gScene.getVertexDataFromCurve(curveHit, curveSphereRadius);
+        v = gScene.getVertexDataFromCurve(hit.getCurveHit()); ;
         materialID = gScene.getCurveMaterialID(curveHit.instanceID);
     }
 #endif
     return v;
-
 }
 
 /** Adjust ShadingData

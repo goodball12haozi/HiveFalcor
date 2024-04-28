@@ -89,10 +89,12 @@ struct PathReusePass
 
         // Compute offset into per-sample buffers. All samples are stored consecutively at this offset.
         const uint centralOffset = params.getReservoirOffset(pixel);
-        PathReservoir dstReservoir = outputReservoirs[centralOffset];
+        PathReservoir dstReservoir = outputReservoirs[centralOffset];//TODO:Maybe Uninitialized
         PathReservoir centralReservoir = dstReservoir;
         float currentM = dstReservoir.M;
         float3 initialColor = dstReservoir.F * dstReservoir.weight;
+
+        //return;
 
         if (ReSTIRMISKind(kTemporalReSTIRMISKind) == ReSTIRMISKind::Talbot)
         {
@@ -106,6 +108,8 @@ struct PathReusePass
         PackedHitInfo centralPrimaryHitPacked;
         ShadingData centralPrimarySd = getPixelShadingData(pixel, centralPrimaryHitPacked);
 
+        //return;
+
         // Tianchen:
         let lod = ExplicitLodTextureSampler(0.f);
         IMaterialInstance mi = gScene.materials.getMaterialInstance(centralPrimarySd, lod);
@@ -115,6 +119,8 @@ struct PathReusePass
         float3 color = 0.f;
         ReconnectionData dummyRcData;
         dummyRcData.Init();
+
+        //return;
 
         {
             bool chooseCurrent = true;
@@ -302,9 +308,15 @@ struct PathReusePass
                 dstReservoir.finalizeRIS();
             }
 
-            if (dstReservoir.weight < 0.f || isinf(dstReservoir.weight) || isnan(dstReservoir.weight)) dstReservoir.weight = 0.f;
+            //return;
+
+            if (dstReservoir.weight < 0.f || isinf(dstReservoir.weight) || isnan(dstReservoir.weight)) dstReservoir.weight = 0.f;\
+            // TODO:问题定位在这里
             outputReservoirs[centralOffset] = dstReservoir;
+            // TODO:Solve above
             color = dstReservoir.F * dstReservoir.weight;
+
+            //return;
 
             if (gIsLastRound)
             {
@@ -319,6 +331,7 @@ struct PathReusePass
         }
 
         if (kDebugOutput == DebugOutput::TemporalReuseOutput) outputDebug[pixel] = float4(dstReservoir.F, 1.0);
+        //return;
     }
 
     /** Entry point for merge pass.
@@ -334,8 +347,7 @@ struct PathReusePass
         logSetPixel(pixel);
 
         ReSTIR(pixel);
-    }
-};
+    }};
 
 // ParameterBlock<PathReusePass> gPathReusePass;
 cbuffer CB

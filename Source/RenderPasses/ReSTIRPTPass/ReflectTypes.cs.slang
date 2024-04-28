@@ -11,6 +11,7 @@
 import RenderPasses.ReSTIRPTPass.PathReservoir;
 
 StructuredBuffer<PathReservoir> outputReservoirs;
+// StructuredBuffer<PathReservoir> temporalReservoirs;
 StructuredBuffer<PixelReconnectionData> reconnectionDataBuffer;
 StructuredBuffer<PathReuseMISWeight> misWeightBuffer;
 
