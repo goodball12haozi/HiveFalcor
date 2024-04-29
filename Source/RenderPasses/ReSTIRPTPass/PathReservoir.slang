@@ -320,7 +320,7 @@ struct PathReservoir
     [mutating]
     bool merge(float3 in_F, float in_Jacobian, PathReservoir inReservoir, inout SampleGenerator sg, float misWeight = 1.f, bool forceAdd = false)
     {
-        return true;
+        //return true;
         float w = toScalar(in_F) * in_Jacobian * inReservoir.M * inReservoir.weight * misWeight;
 
         M += inReservoir.M;
@@ -365,11 +365,11 @@ struct PathReservoir
         // w = 0.f;//OK
         // w = toScalar(in_F);//Not OK
         // in_Jacobian = 0.f;
-        // w = in_Jacobian;//Not OK
+        // w = in_Jacobian;//OK
         // w = inReservoir.weight;//Not OK
         //w = misWeight;//Not OK
         weight += w;
-        return true;//Not OK
+        //return true;//Not OK
 
         // Accept?
         if (forceAdd || sampleNext1D(sg) * weight <= w)

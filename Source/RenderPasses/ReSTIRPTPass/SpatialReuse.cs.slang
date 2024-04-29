@@ -411,8 +411,8 @@ struct PathReusePass
                 bool possibleToBeSelected = shiftAndMergeReservoir( mi, params, false, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, tempDstReservoir,
                     neighborPrimarySd, neighborReservoir, rcData, true, sg, true, 1.f, true );                                    // "true" means hypothetically selected as the sample
                 
-                outputColor[pixel].rgb = dstJacobian; //Not OK
-                return;
+                // outputColor[pixel].rgb = dstJacobian; //OK
+                // return;
 
                 float neighborWeight = 0.f;
 
