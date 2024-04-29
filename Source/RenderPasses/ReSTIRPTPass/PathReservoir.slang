@@ -141,9 +141,9 @@ struct ReSTIRPathFlags
 
 struct ReconnectionData
 {
-    HitInfo rcPrevHit; // 16 bytes
-    float3 rcPrevWo; // 12 bytes
-    float3 pathThroughput; // 12 bytes
+    HitInfo rcPrevHit = {}; // 16 bytes
+    float3 rcPrevWo = {};   // 12 bytes
+    float3 pathThroughput = {}; // 12 bytes
     __init(HitInfo rcPrevHit, float3 rcPrevWo, float3 pathThroughput)
     {
         this.rcPrevHit = rcPrevHit;
@@ -169,17 +169,17 @@ struct ReconnectionData
 
 struct PixelReconnectionData
 {
-    ReconnectionData data[RCDATA_PATH_NUM];
-    float4 padding[RCDATA_PAD_SIZE]; //pad to 256 bytes
+    ReconnectionData data[RCDATA_PATH_NUM] = {};
+    float4 padding[RCDATA_PAD_SIZE] = {}; //pad to 256 bytes
 }
 
 
 struct TriMeshHitInfo
 {
-    uint instanceID;
-    uint primitiveIndex;
-    //uint barycentrics; // lossy compression of barycentrics
-    float2 barycentrics;
+    uint instanceID = {};
+    uint primitiveIndex = {};
+    // uint barycentrics; // lossy compression of barycentrics
+    float2 barycentrics = {};
 
     HitInfo getHitInfo()
     {
@@ -216,8 +216,8 @@ struct TriMeshHitInfo
 
 struct PathReuseMISWeight
 {
-    float rcBSDFMISWeight;
-    float rcNEEMISWeight;
+    float rcBSDFMISWeight = {};
+    float rcNEEMISWeight = {};
 }
 
 // 88/128 B
@@ -225,15 +225,15 @@ struct PathReservoir
 {
     float M = 0.f; // this is a float, because temporal history length is allowed to be a fraction. 
     float weight = 0.f; // during RIS and when used as a "RisState", this is w_sum; during RIS when used as an incoming reseroivr or after RIS, this is 1/p(y) * 1/M * w_sum
-    ReSTIRPathFlags pathFlags; // this is a path type indicator, see the struct definition for details
-    uint rcRandomSeed; // saved random seed after rcVertex (due to the need of blending half-vector reuse and random number replay)
+    ReSTIRPathFlags pathFlags = {}; // this is a path type indicator, see the struct definition for details
+    uint rcRandomSeed = 0; // saved random seed after rcVertex (due to the need of blending half-vector reuse and random number replay)
     float3 F = 0.f; // cached integrand (always updated after a new path is chosen in RIS)
-    float lightPdf; // NEE light pdf (might change after shift if transmission is included since light sampling considers "upperHemisphere" of the previous bounce)
-    float3 cachedJacobian; // saved previous vertex scatter PDF, scatter PDF, and geometry term at rcVertex (used when rcVertex is not v2)
-    uint initRandomSeed; // saved random seed at the first bounce (for recovering the random distance threshold for hybrid shift)
-    TriMeshHitInfo rcVertexHit; // hitinfo of the reconnection vertex
-    float3 rcVertexWi[kRcAttrCount]; // incident direction on reconnection vertex
-    float3 rcVertexIrradiance[kRcAttrCount]; // sampled irradiance on reconnection vertex
+    float lightPdf = 0.f; // NEE light pdf (might change after shift if transmission is included since light sampling considers "upperHemisphere" of the previous bounce)
+    float3 cachedJacobian = 0.f; // saved previous vertex scatter PDF, scatter PDF, and geometry term at rcVertex (used when rcVertex is not v2)
+    uint initRandomSeed = 0;     // saved random seed at the first bounce (for recovering the random distance threshold for hybrid shift)
+    TriMeshHitInfo rcVertexHit = {};               // hitinfo of the reconnection vertex
+    float3 rcVertexWi[kRcAttrCount] = {};          // incident direction on reconnection vertex
+    float3 rcVertexIrradiance[kRcAttrCount] = {}; // sampled irradiance on reconnection vertex
 
 #if BPR
     float rcLightPdf; 
@@ -320,6 +320,7 @@ struct PathReservoir
     [mutating]
     bool merge(float3 in_F, float in_Jacobian, PathReservoir inReservoir, inout SampleGenerator sg, float misWeight = 1.f, bool forceAdd = false)
     {
+        return true;
         float w = toScalar(in_F) * in_Jacobian * inReservoir.M * inReservoir.weight * misWeight;
 
         M += inReservoir.M;
@@ -358,14 +359,22 @@ struct PathReservoir
         float w = toScalar(in_F) * in_Jacobian * inReservoir.weight * misWeight;
 
         M += inReservoir.M;
-
+        // return true;//OK
         if (isnan(w) || w == 0.f) return false;
-
+        // return true; // OK
+        // w = 0.f;//OK
+        // w = toScalar(in_F);//Not OK
+        // in_Jacobian = 0.f;
+        // w = in_Jacobian;//Not OK
+        // w = inReservoir.weight;//Not OK
+        //w = misWeight;//Not OK
         weight += w;
+        return true;//Not OK
 
         // Accept?
         if (forceAdd || sampleNext1D(sg) * weight <= w)
         {
+            //return true;//Not OK
             pathFlags = inReservoir.pathFlags;
             rcRandomSeed = inReservoir.rcRandomSeed;
             initRandomSeed = inReservoir.initRandomSeed;

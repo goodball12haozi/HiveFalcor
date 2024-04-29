@@ -736,13 +736,14 @@ void ReSTIRPTPass::execute(RenderContext* pRenderContext, const RenderData& rend
              // Launch restir merge pass.
              if (mStaticParams.pathSamplingMode == PathSamplingMode::ReSTIR)
              {
-                 if (mEnableTemporalReuse && !skipTemporalReuse)
-                 {
-                     if (mStaticParams.shiftStrategy == ShiftMapping::Hybrid)
-                         PathRetracePass(pRenderContext, restir_i, renderData, true, 0);
-                     // a separate pass to trace rays for hybrid shift/random number replay
-                     PathReusePass(pRenderContext, restir_i, renderData, true, 0, !mEnableSpatialReuse);
-                 }
+                 //TODO：Debug:
+                 //if (mEnableTemporalReuse && !skipTemporalReuse)
+                 //{
+                 //    if (mStaticParams.shiftStrategy == ShiftMapping::Hybrid)
+                 //        PathRetracePass(pRenderContext, restir_i, renderData, true, 0);
+                 //    // a separate pass to trace rays for hybrid shift/random number replay
+                 //    PathReusePass(pRenderContext, restir_i, renderData, true, 0, !mEnableSpatialReuse);
+                 //}
              }
              else if (mStaticParams.pathSamplingMode == PathSamplingMode::PathReuse)
              {

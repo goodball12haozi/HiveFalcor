@@ -150,7 +150,7 @@ struct PathReusePass
 
             temporalReservoir.M = min(gTemporalHistoryLength * currentM, temporalReservoir.M);
 
-            float dstJacobian;
+            float dstJacobian = 0.f;
 
             ///////////////////
             /// TALBOT RMIS ///
@@ -208,7 +208,7 @@ struct PathReusePass
                                 }
 
                                 float p_ = 0.f;
-                                float tneighborJacobian;
+                                float tneighborJacobian = 0.f;
 
                                 ReconnectionData rcData;
                                 if (ShiftMapping(kShiftStrategy) == ShiftMapping::Hybrid && tempDstReservoir.pathFlags.rcVertexLength() > 1)
@@ -230,7 +230,7 @@ struct PathReusePass
                     else neighborReservoir = temporalReservoir;
 
                     //TODO：Solve the unitialized value of dstReservoir 
-                    //mergeReservoirWithResamplingMIS(params, tempDstReservoir.F, dstJacobian, dstReservoir, tempDstReservoir, neighborReservoir, sg, false, misWeight);
+                    mergeReservoirWithResamplingMIS(params, tempDstReservoir.F, dstJacobian, dstReservoir, tempDstReservoir, neighborReservoir, sg, false, misWeight);
                 }
 
                 if (dstReservoir.weight > 0)
@@ -245,7 +245,7 @@ struct PathReusePass
             {
                 float chosen_Jacobian = 1.f;
 
-                bool selected;
+                bool selected = false;
 
                 if (gNoResamplingForTemporalReuse)
                     selected = mergeReservoirNoResampling(params, dstReservoir, temporalReservoir, sg);
@@ -256,7 +256,7 @@ struct PathReusePass
                 if (selected)
                 {
                     chooseCurrent = false;
-                    chosen_Jacobian = dstJacobian;
+                    chosen_Jacobian = dstJacobian = 0.f;
                 }
 
                 // MIS weight
@@ -270,7 +270,7 @@ struct PathReusePass
                         // compute two shifts
 
                         int shiftCount = 1;
-                        float prefix_approxPdf;
+                        float prefix_approxPdf = 0.f;
 
                         float3 prefixIntegrand = computeShiftedIntegrand( mi, params, prefixJacobian, temporalPrimaryHitPacked, temporalPrimarySd,
                             centralPrimarySd, dstReservoir, dummyRcData, true, sg, true); //usePrev // determinisitically select the reconnection shift

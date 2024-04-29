@@ -85,6 +85,7 @@ float3 computeShiftedIntegrand_( const IMaterialInstance mi,const RestirPathTrac
     }
     else if (ShiftMapping(kShiftStrategy) == ShiftMapping::Hybrid)
     {
+        //return 1.f;//OK
         return computeShiftedIntegrandHybrid( mi, params, usePrev, temporalUpdateForDynamicScene, dstJacobian, dstPrimaryHitPacked, dstPrimarySd, srcPrimarySd, srcReservoir, rcData, evalVisibility, sg );
     }
 
@@ -126,6 +127,8 @@ float3 computeShiftedIntegrandHybrid( const IMaterialInstance mi, const RestirPa
     if (tempPathReservoir.weight == 0.f) return 0.f;
 
     dstJacobian = 1.f;
+
+    //return 1.f;//OK
 
     HitInfo dstPrimaryHit = HitInfo(dstPrimaryHitPacked);
     Ray ray = Ray(gScene.camera.getPosition(usePrev), -dstPrimarySd.V, 0, kRayTMax);
@@ -196,10 +199,12 @@ float3 computeShiftedIntegrandHybrid( const IMaterialInstance mi, const RestirPa
                 srcReservoir.rcVertexWi[id] = tempPathReservoir.rcVertexWi[id];
             }
             // shuangjia: dst->rcPrev(centrel primiry hit) // shuangjia: src->temporal primiry hit
+            // TODO: Solve the reconnectionJacobian
             rcTp = computeShiftedIntegrandReconnection( mi, params, reconnectionJacobian, dstRcPrevVertexSd, srcRcPrevVertexSd, srcReservoir,
-                evalVisibility, sg, true, srcReservoir.pathFlags.rcVertexLength() > 1);
-
+                evalVisibility, sg, true, srcReservoir.pathFlags.rcVertexLength() > 1 );
+            // reconnectionJacobian = 1.0f; // OK
             dstJacobian *= reconnectionJacobian;
+            //return 1.f;//Not OK
 
             tempPathReservoir.cachedJacobian = srcReservoir.cachedJacobian;
         }
@@ -413,7 +418,8 @@ float3 computeShiftedIntegrandReconnection(
                                 ShadingData srcPrimarySd, inout PathReservoir srcReservoir, bool evalVisibility, inout SampleGenerator sg,
                                 bool useHybridShift=false, bool useCachedJacobian = false)
 {
-    float3 dstCachedJacobian;
+    // return 1.f;
+    float3 dstCachedJacobian = 0.f;
     dstJacobian = 0.f;
 
     int rcVertexLength = !useHybridShift ? 1 : srcReservoir.pathFlags.rcVertexLength();
@@ -450,7 +456,7 @@ float3 computeShiftedIntegrandReconnection(
                 // float srcPDF1 = useCachedJacobian ? srcReservoir.cachedJacobian.x : srcPrimaryBsdf.evalPdf(srcPrimarySd, wi, -1, false);
                 // float srcPDF1 = useCachedJacobian ? srcReservoir.cachedJacobian.x : mi.evalPdf(srcPrimarySd, wi);
                 float srcPDF1 = 1.0f;
-                float dstPDF1All;
+                float dstPDF1All = 1.f;
                 // TODO: For ReSTIRPT:
                 // float dstPDF1 = dstPrimaryBsdf.evalPdf(dstPrimarySd, wi, dstPDF1All, allowedSampledTypes1, false);
                 // float dstPDF1 = mi.evalPdf(dstPrimarySd, wi);
@@ -519,7 +525,7 @@ float3 computeShiftedIntegrandReconnection(
     assert(kUseBSDFSampling);
 
     // assuming bsdf sampling
-    float dstPDF1All;
+    float dstPDF1All = 1.0f;
     // TODO: For ReSTIRPT:
     // float dstPDF1 = dstPrimaryBsdf.evalPdf(dstPrimarySd, dstConnectionV, dstPDF1All, allowedSampledTypes1, false);
     // float dstPDF1 = mi.evalPdf(dstPrimarySd, dstConnectionV);
@@ -646,9 +652,12 @@ bool shiftAndMergeReservoir(
                                     const ShadingData srcPrimarySd, const PathReservoir srcReservoir, ReconnectionData rcData, bool evalVisibility, inout SampleGenerator sg, bool isSpatialReuse, float misWeight = 1.f, bool forceMerge = false)
 {
     PathReservoir tempPathReservoir = srcReservoir; // temporalReservoir
+    // TODO: dstJacobian
+    //return true;//OK
     float3 dstIntegrand = computeShiftedIntegrand_( mi, params, dstJacobian, dstPrimaryHitPacked, dstPrimarySd, srcPrimarySd,
-                                                            tempPathReservoir, rcData, evalVisibility, sg, false, temporalUpdateForDynamicScene);
-
+        tempPathReservoir, rcData, evalVisibility, sg, false, temporalUpdateForDynamicScene );
+    // TODO: dstJacobian
+    // return true;//Not OK
     if (PathSamplingMode(kPathSamplingMode) == PathSamplingMode::PathReuse)
     {
         dstReservoir.F = dstIntegrand;

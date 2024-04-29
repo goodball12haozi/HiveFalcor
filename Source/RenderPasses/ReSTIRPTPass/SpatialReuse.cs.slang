@@ -235,7 +235,7 @@ struct PathReusePass
 
                 float p_sum = 0;
                 float p_self = 0;
-                float dstJacobian;
+                float dstJacobian = 0;
 
                 PathReservoir tempDstReservoir = dstReservoir;
 
@@ -284,7 +284,7 @@ struct PathReusePass
 
                 float p_sum = 0;
                 float p_self = 0;
-                float dstJacobian;
+                float dstJacobian = 0.f;
 
                 PathReservoir tempDstReservoir = dstReservoir;
                 bool possibleToBeSelected = false;
@@ -328,7 +328,7 @@ struct PathReusePass
                             if (!isValidPackedHitInfo(tneighborPrimaryHitPacked)) continue;
                             if (!isValidGeometry(centralPrimarySd, tneighborPrimarySd)) continue;
 
-                            float tneighborJacobian;
+                            float tneighborJacobian = 0.f;
                             float3 tneighborIntegrand = computeShiftedIntegrand( mi, params, tneighborJacobian, tneighborPrimaryHitPacked, tneighborPrimarySd,
                                 centralPrimarySd, tempDstReservoir, dummyRcData, true, sg);
                             float p_ = PathReservoir::computeWeight(tneighborIntegrand) * tneighborJacobian;
@@ -372,13 +372,13 @@ struct PathReusePass
                 
                 PathReservoir neighborReservoir = outputReservoirs[params.getReservoirOffset(neighborPixel)];
 
-                float dstJacobian;
+                float dstJacobian = 0.f;
 
                 validNeighborCount++;
 
                 float prefix_approxPdf = 0.f;
 
-                float prefixJacobian;
+                float prefixJacobian = 0.f;
 
                 // outputColor[pixel].rgb = dstReservoir.F; //OK
                 // return;
@@ -405,8 +405,14 @@ struct PathReusePass
                 else
                     rcData = dummyRcData;
 
+                // outputColor[pixel].rgb = dstJacobian;//OK
+                // return;
+
                 bool possibleToBeSelected = shiftAndMergeReservoir( mi, params, false, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, tempDstReservoir,
-                    neighborPrimarySd, neighborReservoir, rcData, true, sg, true, 1.f, true); // "true" means hypothetically selected as the sample
+                    neighborPrimarySd, neighborReservoir, rcData, true, sg, true, 1.f, true );                                    // "true" means hypothetically selected as the sample
+                
+                outputColor[pixel].rgb = dstJacobian; //Not OK
+                return;
 
                 float neighborWeight = 0.f;
 
@@ -418,12 +424,15 @@ struct PathReusePass
                 }
                 // outputColor[pixel].rgb = dstReservoir.F; //OK
                 // return;
-                // mergeReservoirWithResamplingMIS( params, tempDstReservoir.F, dstJacobian, dstReservoir, tempDstReservoir, neighborReservoir, sg, true, neighborWeight );
+                // outputColor[pixel].rgb = tempDstReservoir.F;//OK
+                // outputColor[pixel].rgb = dstJacobian;//Not OK
+                // return;
+                mergeReservoirWithResamplingMIS( params, tempDstReservoir.F, dstJacobian, dstReservoir, tempDstReservoir, neighborReservoir, sg, true, neighborWeight );
                 // outputColor[pixel].rgb = dstReservoir.F; //Not OK
                 // return;
             }
 
-            // mergeReservoirWithResamplingMIS( params, centralReservoir.F, 1.f, dstReservoir, centralReservoir, centralReservoir, sg, true, canonicalWeight );
+            mergeReservoirWithResamplingMIS( params, centralReservoir.F, 1.f, dstReservoir, centralReservoir, centralReservoir, sg, true, canonicalWeight );
             // outputColor[pixel].rgb = dstReservoir.F; // Not OK
             // return;
             if (dstReservoir.weight > 0)
@@ -458,7 +467,7 @@ struct PathReusePass
                 if (!isValidPackedHitInfo(neighborPrimaryHitPacked)) continue;
                 if (!isValidGeometry(centralPrimarySd, neighborPrimarySd)) continue;
 
-                float dstJacobian;
+                float dstJacobian = 0.f;
 
                 bool selected = shiftAndMergeReservoir( mi, params, false, dstJacobian, centralPrimaryHitPacked, centralPrimarySd, dstReservoir,
                     neighborPrimarySd, neighborReservoir, dummyRcData, true, sg, true);
@@ -467,7 +476,7 @@ struct PathReusePass
                 {
                     chosen_i = i;
                     chosenPixel = neighborPixel;
-                    chosen_Jacobian = dstJacobian;
+                    chosen_Jacobian = dstJacobian = 0.f;
                 }
             }
 
@@ -512,7 +521,7 @@ struct PathReusePass
                         }
 
                         int2 prefixPixel = getNextNeighborPixel(startIndex, pixel, i);
-                        float prefixJacobian;
+                        float prefixJacobian = 0.f;
                         if (!isValidScreenRegion(prefixPixel)) continue;
 
                         PathReservoir prefixReservoir = outputReservoirs[params.getReservoirOffset(prefixPixel)];
