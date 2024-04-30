@@ -1340,9 +1340,9 @@ struct PathTracer
 
                     if (kUseMIS && ls.lightType != (uint)LightSampleType::Analytic)
                     {
-                        //TODO: For ReSTIRPT:
-                        //scatterPdf = bsdf.evalPdf(sd, ls.dir, -1, false);
-                        scatterPdf = mi.evalPdf(sd, ls.dir);
+                        // TODO: For ReSTIRPT:
+                        // scatterPdf = bsdf.evalPdf(sd, ls.dir, -1, false);
+                        scatterPdf = mi.evalPdf(sd, ls.dir, -1, false);
 
                         misWeight *= evalMIS(1, ls.pdf, 1, scatterPdf);
                     }
@@ -1350,7 +1350,7 @@ struct PathTracer
 
                     // TODO: For ReSTIRPT:
                     // float3 weight = bsdf.eval(sd, ls.dir, path.sg, -1, false);
-                    float3 weight = mi.eval(sd, ls.dir, path.sg);
+                    float3 weight = mi.eval(sd, ls.dir, path.sg, -1, false);
 
                     float3 Lr = weight * ls.Li * path.getCurrentThp();
 
