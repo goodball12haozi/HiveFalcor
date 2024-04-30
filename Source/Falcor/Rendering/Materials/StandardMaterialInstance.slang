@@ -157,7 +157,7 @@ struct StandardMaterialInstance : MaterialInstanceBase, IMaterialInstance
     // Tianchen:For ReSTIRPT:
     bool hasRoughComponent(const ShadingData sd,float roughnessThreshold)
     {
-        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
+        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.frame.N)
         float3 wiLocal = sf.toLocal(sd.V);
         StandardBSDF bsdf = StandardBSDF(wiLocal, sd.mtl, data);
         return bsdf.pDiffuseReflection > 0 || data.roughness > roughnessThreshold; 
@@ -167,6 +167,118 @@ struct StandardMaterialInstance : MaterialInstanceBase, IMaterialInstance
     {
         return data.roughness > roughnessThreshold;
     }
+
+    float3 eval<S : ISampleGenerator>(const ShadingData sd, const float3 wo, inout S sg, uint allowedSampledFlags, bool allowDeltaEval)
+    {
+        float3 wiLocal = sf.toLocal(sd.V);
+        float3 woLocal = sf.toLocal(wo);
+
+        StandardBSDF bsdf = StandardBSDF(wiLocal, sd.mtl, data);;
+
+        return bsdf.eval(wiLocal, woLocal, sg, allowedSampledFlags, allowDeltaEval);
+    }
+
+    bool sampleBSDF<S : ISampleGenerator>(const ShadingData sd, inout S sg, out BSDFSample result, bool useDeterministicBSDF)
+    {
+        float3 wiLocal = sf.toLocal(sd.V);
+        float3 woLocal = {};
+
+        StandardBSDF bsdf = StandardBSDF(wiLocal, sd.mtl, data);;
+
+        bool valid = bsdf.sample(wiLocal, woLocal, result.pdf, result.weight, result.lobeType, sg);
+        result.wo = sf.fromLocal(woLocal);
+
+        if (useDeterministicBSDF)
+        {
+            if (result.pdfSingle == 0.f) result.pdf = 0.f;
+            // Ensure consistency with the geometry.
+            bool compatibleWithReflection = !isTransmissionEvent(sd.V, result.wo, sd.frame.N);
+
+            uint allowedSampledFlags = 0;
+            if (compatibleWithReflection)
+            {
+                allowedSampledFlags |= (uint)SampledBSDFFlags::DiffuseReflection;
+                allowedSampledFlags |= (uint)SampledBSDFFlags::SpecularReflection;
+                allowedSampledFlags |= (uint)SampledBSDFFlags::SpecularReflectionTransmission;
+            }
+            else
+            {
+                allowedSampledFlags |= (uint)SampledBSDFFlags::DiffuseTransmission;
+                allowedSampledFlags |= (uint)SampledBSDFFlags::SpecularReflectionTransmission;
+            }
+
+            // Evaluate all lobes and divide by the full PDF. TODO: Optimize.
+            result.weight = bsdf.eval(wiLocal, woLocal, sg, allowedSampledFlags, result.isLobe(LobeType::Delta)) / result.pdf;
+        }
+
+        return valid;
+    }
+
+    float evalPdf(const ShadingData sd, const float3 wo, uint allowedSampledFlags, bool allowDeltaEval)
+    {
+        float3 wiLocal = sf.toLocal(sd.V);
+        float3 woLocal = sf.toLocal(wo);
+
+        StandardBSDF bsdf = StandardBSDF(wiLocal, sd.mtl, data);;
+
+        return bsdf.evalPdf(wiLocal, woLocal, allowedSampledFlags, allowDeltaEval);
+    }
+
+    float evalPdf(const ShadingData sd, const float3 wo, out float pdfAll, uint allowedSampledFlags, bool allowDeltaEval)
+    {
+        float3 wiLocal = sf.toLocal(sd.V);
+        float3 woLocal = sf.toLocal(wo);
+
+        StandardBSDF bsdf = StandardBSDF(wiLocal, sd.mtl, data);;
+
+        return bsdf.evalPdfAll(wiLocal, woLocal, pdfAll, allowedSampledFlags, allowDeltaEval);
+    }
+
+    float evalPdfWithV(in ShadingData sd, float3 V, float3 L, uint allowedSampledFlags, bool allowDeltaEval)
+    {
+        sd.V = V;
+        float3 wiLocal = sf.toLocal(V);
+        float3 woLocal = sf.toLocal(L);
+
+        StandardBSDF bsdf = StandardBSDF(wiLocal, sd.mtl, data);;
+
+        return bsdf.evalPdf(wiLocal, woLocal, allowedSampledFlags, allowDeltaEval);
+    }
+
+    bool sampleBSDFReference<S : ISampleGenerator>(const ShadingData sd, inout S sg, out BSDFSample result)
+    {
+        float3 wi = sf.toLocal(sd.V);
+        float3 wo = sample_cosine_hemisphere_concentric(sampleNext2D(sg), result.pdf); // pdf = cos(theta) / pi
+
+        if (result.pdf == 0.f) return false;
+
+        StandardBSDF bsdf = StandardBSDF(wi, sd.mtl, data);;
+
+        // Ensure consistency with the geometry.
+        result.wo = sf.fromLocal(wo);
+        
+        bool compatibleWithReflection = !isTransmissionEvent(sd.V, result.wo, sd.frame.N);
+
+        uint allowedSampledFlags = 0;
+        if (compatibleWithReflection)
+        {
+            allowedSampledFlags |= (uint)SampledBSDFFlags::DiffuseReflection;
+            allowedSampledFlags |= (uint)SampledBSDFFlags::SpecularReflection;
+            allowedSampledFlags |= (uint)SampledBSDFFlags::SpecularReflectionTransmission;
+        }
+        else
+        {
+            allowedSampledFlags |= (uint)SampledBSDFFlags::DiffuseTransmission;
+            allowedSampledFlags |= (uint)SampledBSDFFlags::SpecularReflectionTransmission;
+        }
+
+        result.weight = bsdf.eval(wi, wo, sg, allowedSampledFlags, false) / result.pdf;
+        result.lobeType = (uint)LobeType::DiffuseReflection;
+
+        return true;
+    }
+
+    // Additional functions
 
 
     uint getLobeTypes(const ShadingData sd)
@@ -199,6 +311,11 @@ struct StandardMaterialInstance : MaterialInstanceBase, IMaterialInstance
         result.phaseFunction = NullPhaseFunction(); // g is taken from the volume and set in InternalPathTracer
         return result;
 
+    }
+
+    bool isTransmissionEvent(const float3 wi, const float3 wo, const float3 faceN)
+    {
+        return (dot(wi, faceN) > 0) != (dot(wo, faceN) > 0);
     }
 
     // Additional functions

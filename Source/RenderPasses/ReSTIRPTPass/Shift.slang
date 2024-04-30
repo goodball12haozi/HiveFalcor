@@ -454,18 +454,19 @@ float3 computeShiftedIntegrandReconnection(
             {
                 // TODO: For ReSTIRPT:
                 // float srcPDF1 = useCachedJacobian ? srcReservoir.cachedJacobian.x : srcPrimaryBsdf.evalPdf(srcPrimarySd, wi, -1, false);
-                // float srcPDF1 = useCachedJacobian ? srcReservoir.cachedJacobian.x : mi.evalPdf(srcPrimarySd, wi);
-                float srcPDF1 = 1.0f;
+                float srcPDF1 = useCachedJacobian ? srcReservoir.cachedJacobian.x : mi.evalPdf(srcPrimarySd, wi);
+                // float srcPDF1 = 1.0f;
                 float dstPDF1All = 1.f;
+                
                 // TODO: For ReSTIRPT:
                 // float dstPDF1 = dstPrimaryBsdf.evalPdf(dstPrimarySd, wi, dstPDF1All, allowedSampledTypes1, false);
-                // float dstPDF1 = mi.evalPdf(dstPrimarySd, wi);
-                float dstPDF1 = 1.0f;
+                float dstPDF1 = mi.evalPdf(dstPrimarySd, wi);
+                // float dstPDF1 = 1.0f;
                 dstCachedJacobian.x = dstPDF1;
                 // TODO: For ReSTIRPT:
                 // float3 dstF1 = dstPrimaryBsdf.eval(dstPrimarySd, wi, sg, allowedSampledTypes1, false); // shuangjia: just brdf, not brdf * L;
-                // float3 dstF1 = mi.eval(dstPrimarySd, wi, sg);                                   // shuangjia: just brdf, not brdf * L;
-                float3 dstF1 = 1.0f;                                   // shuangjia: just brdf, not brdf * L;
+                float3 dstF1 = mi.eval(dstPrimarySd, wi, sg);                                   // shuangjia: just brdf, not brdf * L;
+                // float3 dstF1 = 1.0f;                                   // shuangjia: just brdf, not brdf * L;
                 float misWeight = PathTracer::evalMIS(1, dstPDF1All, 1, srcReservoir.lightPdf); // shuangjia: dstPDF1 / (dstPDF1 + srcReservoir.lightPdf);
                 dstIntegrand = dstF1 / dstPDF1 * misWeight * rcVertexIrradiance; // shuangjia: here are brdf * L * misWeight / pdf;
                 dstJacobian = dstPDF1 / srcPDF1;
@@ -528,13 +529,13 @@ float3 computeShiftedIntegrandReconnection(
     float dstPDF1All = 1.0f;
     // TODO: For ReSTIRPT:
     // float dstPDF1 = dstPrimaryBsdf.evalPdf(dstPrimarySd, dstConnectionV, dstPDF1All, allowedSampledTypes1, false);
-    // float dstPDF1 = mi.evalPdf(dstPrimarySd, dstConnectionV);
-    float dstPDF1 = 1.0f;
+    float dstPDF1 = mi.evalPdf(dstPrimarySd, dstConnectionV);
+    // float dstPDF1 = 1.0f;
     dstCachedJacobian.x = dstPDF1;
     // TODO: For ReSTIRPT:
     // float srcPDF1 = useCachedJacobian ? srcReservoir.cachedJacobian.x : srcPrimaryBsdf.evalPdf(srcPrimarySd, srcConnectionV, allowedSampledTypes1, false);
-    // float srcPDF1 = useCachedJacobian ? srcReservoir.cachedJacobian.x : mi.evalPdf(srcPrimarySd, srcConnectionV);
-    float srcPDF1 = 1.0f;
+    float srcPDF1 = useCachedJacobian ? srcReservoir.cachedJacobian.x : mi.evalPdf(srcPrimarySd, srcConnectionV);
+    // float srcPDF1 = 1.0f;
 
     Jacobian *= dstPDF1 / srcPDF1;
 
@@ -542,8 +543,8 @@ float3 computeShiftedIntegrandReconnection(
 
     // TODO: For ReSTIRPT:
     // float3 dstF1 = dstPrimaryBsdf.eval(dstPrimarySd, dstConnectionV, sg, allowedSampledTypes1, false);
-    // float3 dstF1 = mi.eval(dstPrimarySd, dstConnectionV, sg);
-    float3 dstF1 = 1.0f;
+    float3 dstF1 = mi.eval(dstPrimarySd, dstConnectionV, sg);
+    // float3 dstF1 = 1.0f;
 
     float dstRcVertexScatterPdfAll = 0.f;
     float dstPDF2 = 1.f;
@@ -560,12 +561,13 @@ float3 computeShiftedIntegrandReconnection(
         // assuming bsdf sampling
         // TODO: For ReSTIRPT:
         // dstRcVertexScatterPdf = rcVertexBsdf.evalPdf(rcVertexSd, rcVertexWi, dstRcVertexScatterPdfAll, allowedSampledTypes2, false);
-        // dstRcVertexScatterPdf = mi.evalPdf(rcVertexSd, rcVertexWi);
-        dstRcVertexScatterPdf = 1.0f;
+        dstRcVertexScatterPdf = mi.evalPdf(rcVertexSd, rcVertexWi);
+        // dstRcVertexScatterPdf = 1.0f;
         dstCachedJacobian.y = dstRcVertexScatterPdf;
         // TODO: For ReSTIRPT:
         // srcRcVertexScatterPdf = useCachedJacobian ? srcReservoir.cachedJacobian.y : rcVertexBsdf.evalPdfWithV(rcVertexSd, -srcConnectionV, rcVertexWi, allowedSampledTypes2, false);
-        srcRcVertexScatterPdf = 1.0f;
+        srcRcVertexScatterPdf = useCachedJacobian ? srcReservoir.cachedJacobian.y : mi.evalPdf(rcVertexSd, -srcConnectionV);
+        // srcRcVertexScatterPdf = 1.0f;
 
         if (!isRcVertexNEE) dstPDF2 = dstRcVertexScatterPdf;
         else dstPDF2 = srcReservoir.lightPdf;
@@ -577,8 +579,8 @@ float3 computeShiftedIntegrandReconnection(
     {
         // dstF2 = mi.eval(rcVertexSd, rcVertexWi, sg, allowedSampledTypes2, false);
         // TODO: For ReSTIRPT:
-        // dstF2 = mi.eval(rcVertexSd, rcVertexWi, sg);
-        dstF2 = 1.0f;
+        dstF2 = mi.eval(rcVertexSd, rcVertexWi, sg);
+        // dstF2 = 1.0f;
     }
 
 

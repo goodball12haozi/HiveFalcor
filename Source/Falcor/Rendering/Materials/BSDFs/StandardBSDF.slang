@@ -341,4 +341,124 @@ struct StandardBSDF : IBSDF, IDifferentiable
         r.roughnessBSDFNotation = float2(alpha < kMinGGXAlpha ? 0.f : alpha);
         return r;
     }
+
+    // Tianchen:For ReSTIRPT:
+    float3 eval<S : ISampleGenerator>(float3 wi, float3 wo, inout S sg, uint allowedSampledTypes, bool allowDeltaEval)
+    {
+        float3 result = 0.f;
+        if ((allowedSampledTypes & uint(SampledBSDFFlags::DiffuseReflection)) && pDiffuseReflection > 0.f && !allowDeltaEval) result += (1.f - specTrans) * (1.f - diffTrans) * diffuseReflection.eval(wi, wo, sg);
+        if ((allowedSampledTypes & uint(SampledBSDFFlags::DiffuseTransmission)) && pDiffuseTransmission > 0.f && !allowDeltaEval) result += (1.f - specTrans) * diffTrans * diffuseTransmission.eval(wi, wo, sg);
+        if ((allowedSampledTypes & uint(SampledBSDFFlags::SpecularReflection)) && pSpecularReflection > 0.f) result += (1.f - specTrans) * specularReflection.eval(wi, wo, sg, allowDeltaEval);
+        if ((allowedSampledTypes & uint(SampledBSDFFlags::SpecularReflectionTransmission)) && pSpecularTransmission > 0.f) result += specTrans * (specularTransmission.eval(wi, wo, sg, allowDeltaEval));
+        return result;
+    }
+
+    bool sample<S : ISampleGenerator>( const float3 wi, out float3 wo, out float pdf, out float pdfSingle, out float3 weight, out uint lobe, inout S sg )
+    {
+        // Default initialization to avoid divergence at returns.
+        wo = {};
+        weight = {};
+        pdf = 0.f;
+        pdfSingle = 0.f;
+        lobe = (uint)LobeType::DiffuseReflection;
+
+        bool valid = false;
+        float uSelect = sampleNext1D(sg);
+
+        // Note: The commented-out pdf contributions below are always zero, so no need to compute them.
+
+        if (uSelect < pDiffuseReflection)
+        {
+            valid = diffuseReflection.sample(wi, wo, pdf, weight, lobe, sg);
+            weight /= pDiffuseReflection;
+            weight *= (1.f - specTrans) * (1.f - diffTrans);
+            pdf *= pDiffuseReflection;
+            pdfSingle = pdf;
+            // if (pDiffuseTransmission > 0.f) pdf += pDiffuseTransmission * diffuseTransmission.evalPdf(wi, wo);
+            if (pSpecularReflection > 0.f) pdf += pSpecularReflection * specularReflection.evalPdf(wi, wo, false);
+            if (pSpecularTransmission > 0.f) pdf += pSpecularTransmission * specularTransmission.evalPdf(wi, wo, false);
+        }
+        else if (uSelect < pDiffuseReflection + pDiffuseTransmission)
+        {
+            valid = diffuseTransmission.sample(wi, wo, pdf, weight, lobe, sg);
+            weight /= pDiffuseTransmission;
+            weight *= (1.f - specTrans) * diffTrans;
+            pdf *= pDiffuseTransmission;
+            pdfSingle = pdf;
+            // if (pDiffuseReflection > 0.f) pdf += pDiffuseReflection * diffuseReflection.evalPdf(wi, wo);
+            // if (pSpecularReflection > 0.f) pdf += pSpecularReflection * specularReflection.evalPdf(wi, wo);
+            if (pSpecularTransmission > 0.f) pdf += pSpecularTransmission * specularTransmission.evalPdf(wi, wo, false);
+        }
+        else if (uSelect < pDiffuseReflection + pDiffuseTransmission + pSpecularReflection)
+        {
+            valid = specularReflection.sample(wi, wo, pdf, weight, lobe, sg);
+            weight /= pSpecularReflection;
+            weight *= (1.f - specTrans);
+            pdf *= pSpecularReflection;
+            pdfSingle = pdf;
+            if ((lobe & uint(LobeType::Delta)) == 0)
+            {
+                if (pDiffuseReflection > 0.f) pdf += pDiffuseReflection * diffuseReflection.evalPdf(wi, wo);
+                // if (pDiffuseTransmission > 0.f) pdf += pDiffuseTransmission * diffuseTransmission.evalPdf(wi, wo);
+            }
+            if (pSpecularTransmission > 0.f) pdf += pSpecularTransmission * specularTransmission.evalPdf(wi, wo, true);
+        }
+        else if (pSpecularTransmission > 0.f)
+        {
+            valid = specularTransmission.sample(wi, wo, pdf, weight, lobe, sg);
+            weight /= pSpecularTransmission;
+            weight *= specTrans;
+            pdf *= pSpecularTransmission;
+            pdfSingle = pdf;
+            if ((lobe & uint(LobeType::Delta)) == 0)
+            {
+                if (pDiffuseReflection > 0.f) pdf += pDiffuseReflection * diffuseReflection.evalPdf(wi, wo);
+                if (pDiffuseTransmission > 0.f) pdf += pDiffuseTransmission * diffuseTransmission.evalPdf(wi, wo);
+            }
+            if (pSpecularReflection > 0.f) pdf += pSpecularReflection * specularReflection.evalPdf(wi, wo, lobe & uint(LobeType::DeltaReflection));
+        }
+
+        return valid;
+    }
+
+    float evalPdf(float3 wi, float3 wo, uint allowedSampledTypes, bool allowDeltaEval)
+    {
+        float pdf = 0.f;
+        if ((allowedSampledTypes & uint(SampledBSDFFlags::DiffuseReflection)) && !allowDeltaEval && pDiffuseReflection > 0.f) pdf += pDiffuseReflection * diffuseReflection.evalPdf(wi, wo);
+        if ((allowedSampledTypes & uint(SampledBSDFFlags::DiffuseTransmission)) && !allowDeltaEval && pDiffuseTransmission > 0.f) pdf += pDiffuseTransmission * diffuseTransmission.evalPdf(wi, wo);
+        if ((allowedSampledTypes & uint(SampledBSDFFlags::SpecularReflection)) && pSpecularReflection > 0.f) pdf += pSpecularReflection * specularReflection.evalPdf(wi, wo, allowDeltaEval);
+        if ((allowedSampledTypes & uint(SampledBSDFFlags::SpecularReflectionTransmission)) && pSpecularTransmission > 0.f) pdf += pSpecularTransmission * specularTransmission.evalPdf(wi, wo, allowDeltaEval);
+        return pdf;
+    }
+
+    float evalPdfAll(float3 wi, float3 wo, out float pdfAll, uint allowedSampledTypes, bool allowDeltaEval)
+    {
+        pdfAll = 0.f;
+        float pdfSingle = 0.f;
+        if (!allowDeltaEval && pDiffuseReflection > 0.f)
+        {
+            float pdf = pDiffuseReflection * diffuseReflection.evalPdf(wi, wo);
+            if (allowedSampledTypes & uint(SampledBSDFFlags::DiffuseReflection)) pdfSingle += pdf;
+            pdfAll += pdf;
+        }
+        if (!allowDeltaEval && pDiffuseTransmission > 0.f)
+        {
+            float pdf = pDiffuseTransmission * diffuseTransmission.evalPdf(wi, wo);
+            if (allowedSampledTypes & uint(SampledBSDFFlags::DiffuseTransmission)) pdfSingle += pdf;
+            pdfAll += pdf;
+        }
+        if (pSpecularReflection > 0.f)
+        {
+            float pdf = pSpecularReflection * specularReflection.evalPdf(wi, wo, allowDeltaEval);
+            if (allowedSampledTypes & uint(SampledBSDFFlags::SpecularReflection)) pdfSingle += pdf;
+            pdfAll += pdf;
+        }
+        if (pSpecularTransmission > 0.f)
+        {
+            float pdf = pSpecularTransmission * specularTransmission.evalPdf(wi, wo, allowDeltaEval);
+            if (allowedSampledTypes & uint(SampledBSDFFlags::SpecularReflectionTransmission)) pdfSingle += pdf;
+            pdfAll += pdf;
+        }
+        return pdfSingle;
+    }
 };

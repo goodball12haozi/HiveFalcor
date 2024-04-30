@@ -82,6 +82,37 @@ struct SpecularMicrofacetBRDF : IBSDF, IDifferentiable
         return F * D * G * 0.25f / wi.z;
     }
 
+    [Differentiable]
+    float3 eval<S : ISampleGenerator>(const float3 wi, const float3 wo, inout S sg, bool allowDeltaEval)
+    {
+        if (min(wi.z, wo.z) < kMinCosTheta)
+            return float3(0.f);
+
+#if EnableDeltaBSDF
+        // Handle delta reflection.
+        if (alpha == 0.f)
+        {
+            if (allowDeltaEval) return evalFresnelSchlick(albedo, 1.f, wi.z);
+            else return float3(0.f);
+        }
+#endif
+
+        if (!hasLobe(LobeType::SpecularReflection))
+            return float3(0.f);
+
+        float3 h = normalize(wi + wo);
+        float wiDotH = dot(wi, h);
+
+        float D = evalNdfGGX(alpha, h.z);
+#if SpecularMaskingFunction == SpecularMaskingFunctionSmithGGXSeparable
+        float G = evalMaskingSmithGGXSeparable(alpha, wi.z, wo.z);
+#elif SpecularMaskingFunction == SpecularMaskingFunctionSmithGGXCorrelated
+        float G = evalMaskingSmithGGXCorrelated(alpha, wi.z, wo.z);
+#endif
+        float3 F = evalFresnelSchlick(albedo, 1.f, wiDotH);
+        return F * D * G * 0.25f / wi.z;
+    }
+
     bool sample<S : ISampleGenerator>(const float3 wi, out float3 wo, out float pdf, out float3 weight, out uint lobeType, inout S sg)
     {
         // Default initialization to avoid divergence at returns.
@@ -175,6 +206,32 @@ struct SpecularMicrofacetBRDF : IBSDF, IDifferentiable
         return pdf / (4.f * wiDotH);
     }
 
+    float evalPdf(const float3 wi, const float3 wo, bool allowDeltaEval)
+    {
+        if (min(wi.z, wo.z) < kMinCosTheta)
+            return 0.f;
+
+#if EnableDeltaBSDF
+        // Handle delta reflection.
+        if (alpha == 0.f)
+        {
+            return allowDeltaEval ? 1.f : 0.f;
+        }
+#endif
+
+        if (!hasLobe(LobeType::SpecularReflection))
+            return 0.f;
+
+        float3 h = normalize(wi + wo);
+        float wiDotH = dot(wi, h);
+#if EnableVNDFSampling
+        float pdf = evalPdfGGX_VNDF(alpha, wi, h);
+#else
+        float pdf = evalPdfGGX_NDF(alpha, h.z);
+#endif
+        return pdf / (4.f * wiDotH);
+    }
+
     AlbedoContributions evalAlbedo(const float3 wi, const LobeType lobetype)
     {
         float3 r = evalFresnelSchlick(albedo, 1.f, wi.z);
@@ -212,6 +269,67 @@ struct SpecularMicrofacetBSDF : IBSDF, IDifferentiable
         // Handle delta reflection/transmission.
         if (alpha == 0.f)
             return float3(0.f);
+#endif
+
+        const bool hasReflection = hasLobe(LobeType::SpecularReflection);
+        const bool hasTransmission = hasLobe(LobeType::SpecularTransmission);
+        const bool isReflection = wo.z > 0.f;
+        if ((isReflection && !hasReflection) || (!isReflection && !hasTransmission))
+            return float3(0.f);
+
+        // Compute half-vector and make sure it's in the upper hemisphere.
+        float3 h = normalize(wo + wi * (isReflection ? 1.f : eta));
+        h *= float(sign(h.z));
+
+        float wiDotH = dot(wi, h);
+        float woDotH = dot(wo, h);
+
+        float D = evalNdfGGX(alpha, h.z);
+#if SpecularMaskingFunction == SpecularMaskingFunctionSmithGGXSeparable
+        float G = evalMaskingSmithGGXSeparable(alpha, wi.z, abs(wo.z));
+#elif SpecularMaskingFunction == SpecularMaskingFunctionSmithGGXCorrelated
+        float G = evalMaskingSmithGGXCorrelated(alpha, wi.z, abs(wo.z));
+#endif
+        float F = evalFresnelDielectric(eta, wiDotH);
+
+        if (isReflection)
+        {
+            return F * D * G * 0.25f / wi.z;
+        }
+        else
+        {
+            float sqrtDenom = woDotH + eta * wiDotH;
+            float t = eta * eta * wiDotH * woDotH / (wi.z * sqrtDenom * sqrtDenom);
+            return transmissionAlbedo * (1.f - F) * D * G * abs(t);
+        }
+    }
+
+    [Differentiable]
+    float3 eval<S : ISampleGenerator>(const float3 wi, const float3 wo, inout S sg, bool allowDeltaEval)
+    {
+        if (min(wi.z, abs(wo.z)) < kMinCosTheta)
+            return float3(0.f);
+
+#if EnableDeltaBSDF
+        // Handle delta reflection/transmission.
+        if (alpha == 0.f)
+        {
+            if (allowDeltaEval)
+            {
+                const bool isReflection = wo.z > 0.f;
+                float3 h = normalize(wo + wi * (isReflection ? 1.f : eta));
+                if (eta == 1.f && !isReflection && all(isnan(h))) h = float3(0, 0, 1); // wi = -wo case
+                h *= float(sign(h.z));
+
+                float wiDotH = dot(wi, h);
+                float F = evalFresnelDielectric(eta, wiDotH);
+
+                if (isReflection) return F;
+                else return (1.f - F) * transmissionAlbedo;
+            }
+            else
+                return float3(0.f);
+        }
 #endif
 
         const bool hasReflection = hasLobe(LobeType::SpecularReflection);
@@ -388,6 +506,74 @@ struct SpecularMicrofacetBSDF : IBSDF, IDifferentiable
         // Handle delta reflection/transmission.
         if (alpha == 0.f)
             return 0.f;
+#endif
+
+        bool isReflection = wo.z > 0.f;
+        const bool hasReflection = hasLobe(LobeType::SpecularReflection);
+        const bool hasTransmission = hasLobe(LobeType::SpecularTransmission);
+        if ((isReflection && !hasReflection) || (!isReflection && !hasTransmission))
+            return 0.f;
+
+        // Compute half-vector and make sure it's in the upper hemisphere.
+        float3 h = normalize(wo + wi * (isReflection ? 1.f : eta));
+        h *= float(sign(h.z));
+
+        float wiDotH = dot(wi, h);
+        float woDotH = dot(wo, h);
+
+        float F = evalFresnelDielectric(eta, wiDotH);
+
+#if EnableVNDFSampling
+        float pdf = evalPdfGGX_VNDF(alpha, wi, h);
+#else
+        float pdf = evalPdfGGX_NDF(alpha, h.z);
+#endif
+        if (isReflection)
+        {
+            pdf /= 4.f * woDotH; // Jacobian of the reflection operator.
+        }
+        else
+        {
+            if (woDotH > 0.f)
+                return 0.f;
+            float sqrtDenom = woDotH + eta * wiDotH;
+            float denom = sqrtDenom * sqrtDenom;
+            pdf = (denom > 0.f) ? pdf * abs(woDotH) / denom : FLT_MAX; // Jacobian of the refraction operator.
+        }
+
+        if (hasReflection && hasTransmission)
+        {
+            pdf *= isReflection ? F : 1.f - F;
+        }
+
+        return pdf;
+    }
+
+    float evalPdf(const float3 wi, const float3 wo, bool allowDeltaEval)
+    {
+        if (min(wi.z, abs(wo.z)) < kMinCosTheta)
+            return 0.f;
+
+#if EnableDeltaBSDF
+        // Handle delta reflection/transmission.
+        if (alpha == 0.f)
+        {
+            if (allowDeltaEval)
+            {
+                const bool isReflection = wo.z > 0.f;
+                float3 h = normalize(wo + wi * (isReflection ? 1.f : eta));
+                if (eta == 1.f && !isReflection && all(isnan(h))) h = float3(0, 0, 1); // wi = -wo case
+                h *= float(sign(h.z));
+                float wiDotH = dot(wi, h);
+                float F = evalFresnelDielectric(eta, wiDotH);
+
+                // print("specularReflectionTranmission Delta pdf", F);
+
+                if (isReflection) return F;
+                else return 1.f - F;
+            }
+            else return 0.f;
+        }
 #endif
 
         bool isReflection = wo.z > 0.f;

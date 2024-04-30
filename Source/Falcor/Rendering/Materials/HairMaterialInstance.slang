@@ -138,10 +138,35 @@ struct HairMaterialInstance : MaterialInstanceBase, IMaterialInstance
         return (uint)LobeType::DiffuseReflection | (uint)LobeType::DiffuseTransmission;
     }
 
-    // Tianchen:For ReSTIRPT:
+    // Tianchen: for ReSTIR PT
+    bool sampleBSDF<S : ISampleGenerator>(const ShadingData sd, inout S sg, out BSDFSample result, bool useDeterministicBSDF)
+    {
+        bool valid = false;
+        return valid;
+    }
+
+    float3 eval<S : ISampleGenerator>(const ShadingData sd, const float3 wo, inout S sg, uint allowedSampledFlags, bool allowDeltaEval)
+    {
+        return float3(0.0f, 0.0f, 0.0f);
+    }
+
+    float evalPdf(const ShadingData sd, const float3 wo, uint allowedSampledFlags, bool allowDeltaEval)
+    {
+        return 0.0f;
+    }
+
+    float evalPdf(const ShadingData sd, const float3 wo, out float pdfAll, uint allowedSampledFlags, bool allowDeltaEval)
+    {
+        return 0.0f;
+    }
+
+    float evalPdfWithV(in ShadingData sd, float3 V, float3 L, uint allowedSampledFlags, bool allowDeltaEval)
+    {
+        return 0.0f;
+    }
+
     bool hasRoughComponent(const ShadingData sd, float roughnessThreshold)
     {
-        // TODO:wiLocal是否正确 ： wiLocal.z = dot(sd.V, sd.N)
         return false;
     }
 
@@ -149,4 +174,11 @@ struct HairMaterialInstance : MaterialInstanceBase, IMaterialInstance
     {
         return false;
     }
+
+    bool sampleBSDFReference<S : ISampleGenerator>(const ShadingData sd, inout S sg, out BSDFSample result)
+    {
+        return false;
+    }
+
+    // Additional functions
 };

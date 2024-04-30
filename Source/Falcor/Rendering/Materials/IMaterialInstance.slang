@@ -63,7 +63,8 @@ struct BSDFSample
     float3  wo;             ///< Sampled direction in world space (normalized).
     float   pdf;            ///< pdf with respect to solid angle for the sampled direction (wo).
     float3  weight;         ///< Sample weight f(wi, wo) * dot(wo, n) / pdf(wo).
-    uint    lobeType;       ///< Sampled lobeType. This is a combination of LobeType flags (see LobeType.slang).
+    uint lobeType;          ///< Sampled lobeType. This is a combination of LobeType flags (see LobeType.slang).
+    float pdfSingle;        // For ReSTIRPT
 
     bool isLobe(LobeType type)
     {
@@ -193,12 +194,7 @@ interface IMaterialInstance
     */
     uint getLobeTypes(const ShadingData sd);
 
-    // Tianchen:For ReSTIRPT:
-    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold);
-
-    bool classifyAsRough(float roughnessThreshold);
-
-    
+  
     /** Indicates if the volume properties are taken from the material instance or not
         \return True if the volume properties are textured.
     */
@@ -208,6 +204,23 @@ interface IMaterialInstance
         \return Volume properties.
     */
     VolumeProperties getVolumeProperties();
+
+    // Tianchen:For ReSTIRPT:
+    bool hasRoughComponent(const ShadingData sd, float roughnessThreshold);
+
+    bool classifyAsRough(float roughnessThreshold);
+
+    float3 eval<S : ISampleGenerator>(const ShadingData sd, const float3 wo, inout S sg, uint allowedSampledFlags, bool allowDeltaEval);
+
+    bool sampleBSDF<S : ISampleGenerator>(const ShadingData sd, inout S sg, out BSDFSample result, bool useDeterministicBSDF);
+
+    float evalPdf(const ShadingData sd, const float3 wo, uint allowedSampledFlags, bool allowDeltaEval);
+
+    float evalPdf(const ShadingData sd, const float3 wo, out float pdfAll, uint allowedSampledFlags, bool allowDeltaEval);
+
+    float evalPdfWithV(in ShadingData sd, float3 V, float3 L, uint allowedSampledFlags, bool allowDeltaEval);
+
+    bool sampleBSDFReference<S : ISampleGenerator>(const ShadingData sd, inout S sg, out BSDFSample result);
 }
 
 [open]

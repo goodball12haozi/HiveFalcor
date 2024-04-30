@@ -59,4 +59,13 @@ enum class LobeType // : uint32_t
     All                     = 0xff,
 };
 
+// FOR RESTIR_PT
+enum class SampledBSDFFlags
+{
+    DiffuseReflection = 1,
+    DiffuseTransmission = 2,
+    SpecularReflection = 4,
+    SpecularReflectionTransmission = 8
+};
+
 END_NAMESPACE_FALCOR
